@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "trainer": {
+      "type": "http",
+      "url": "https://trainer-mcp.yourdomain.com/mcp"
+    }
+  }
+}

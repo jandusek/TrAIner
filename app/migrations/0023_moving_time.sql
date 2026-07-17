@@ -1,0 +1,45 @@
+-- Moving (timer) time, distinct from the wall-clock elapsed time already in
+-- `duration_sec` (0002_workouts.sql).
+--
+-- The bug this fixes: a single Wahoo ride row mixed FOUR different time bases,
+-- so no two averages on it were comparable. On wahoo:476320810 (a 30 km ride
+-- interrupted by a long rain wait):
+--
+--   duration_sec     11321 s  wall clock, INCLUDES the rain wait
+--   avg_power_w         96 W  FIT session, over timer time, INCLUDES coasting zeros
+--   avg_cadence_rpm     62    FIT session, over timer time, EXCLUDES coasting zeros
+--   avg_hr           108.5    Watch samples spanning 9970 s — the Watch never paused
+--
+-- The head unit auto-pauses: that ride recorded 5059 samples across an 11319 s
+-- span, i.e. ~1h24 of actual riding inside a 3h09 wall clock. FIT reports both
+-- numbers — `totalTimerTime` (moving) and `totalElapsedTime` (wall clock) — but
+-- src/fit.ts only ever read the latter, and `totalTimerTime` appeared nowhere in
+-- the codebase. Every derived pace/speed figure therefore divided real distance
+-- by inflated time.
+--
+-- This is not a rain-day edge case. The 2026-07-01 lunch commute in
+-- test/fixtures/wahoo-ride.fit reads totalTimerTime 789 vs totalElapsedTime
+-- 1031 — 242 s stopped at traffic lights on a 17-minute ride, which is the
+-- difference between a reported 14.5 km/h and an actual 19.0 km/h.
+--
+-- Keeping both columns rather than redefining `duration_sec`: elapsed is a real
+-- fact about the session (it's what the Watch and the workout's start/end
+-- timestamps agree on), and the UI shows both side by side so a large gap stays
+-- visible instead of being silently normalized away.
+--
+-- moving_sec is NULL on the HAE path — Apple exposes no timer/elapsed split, only
+-- HKWorkout.duration. Analysis code should use COALESCE(moving_sec, duration_sec),
+-- but must not read that fallback as equivalent: despite what the HKWorkout.duration
+-- docs imply about excluding paused intervals, an HAE row here is plain wall clock —
+-- on 6 of 8 HAE cycling rides duration_sec equals end_time - start_time exactly,
+-- because the athlete never pressed pause and the Watch has no auto-pause running.
+-- So a Wahoo row's derived speed is honest while an HAE row's is understated by its
+-- stopped time, and ranking the two against each other compares measurement methods,
+-- not riders (see mcp/src/db.ts's fastest_avg_speed and its caveat field).
+--
+-- Reconstructing HAE moving time from GPS was tried and rejected. The four Wahoo
+-- rides carry both a route and a true totalTimerTime, so they calibrate the method:
+-- a speed-threshold reconstruction undershot them by 2.4-17%, with the per-ride
+-- error too scattered for any threshold to correct. At ~3s point spacing, dropouts
+-- swallow real riding time. Revisit only with a denser route source.
+ALTER TABLE workouts ADD COLUMN moving_sec INTEGER;   -- FIT totalTimerTime; NULL on the HAE path

@@ -1,0 +1,6 @@
+node_modules/
+.wrangler/
+
+# Real deployed config — has the private hostname. Copy wrangler.jsonc.example
+# to wrangler.jsonc and fill in real values (see ../README.md → Setup).
+wrangler.jsonc

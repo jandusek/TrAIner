@@ -1,0 +1,46 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "trainer-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "YOUR_CLOUDFLARE_ACCOUNT_ID",
+  // MCP server is its own worker (workers-oauth-provider owns the whole fetch
+  // handler). Only the custom domain; never *.workers.dev.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "trainer-mcp.yourdomain.com", "custom_domain": true }
+  ],
+  "observability": { "enabled": true },
+  // Cloudflare Access (OIDC) endpoints. Fill the client id + the three URLs after
+  // creating the Access SaaS app (URLs embed the client id) — see README.md → Setup.
+  // Not secrets, but this whole file is gitignored anyway since the hostname above
+  // is private. The client secret + COOKIE_ENCRYPTION_KEY are set via `wrangler secret put`.
+  "vars": {
+    "ACCESS_CLIENT_ID": "YOUR_ACCESS_SAAS_APP_CLIENT_ID",
+    "ACCESS_AUTHORIZATION_URL": "https://your-team.cloudflareaccess.com/cdn-cgi/access/sso/oidc/YOUR_ACCESS_SAAS_APP_CLIENT_ID/authorization",
+    "ACCESS_TOKEN_URL": "https://your-team.cloudflareaccess.com/cdn-cgi/access/sso/oidc/YOUR_ACCESS_SAAS_APP_CLIENT_ID/token",
+    "ACCESS_JWKS_URL": "https://your-team.cloudflareaccess.com/cdn-cgi/access/sso/oidc/YOUR_ACCESS_SAAS_APP_CLIENT_ID/jwks"
+  },
+  // Same D1 as the ingest/UI worker — the MCP server reads workouts/laps/notes.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "training",
+      "database_id": "YOUR_D1_DATABASE_ID"
+    }
+  ],
+  // OAuth grants/tokens + auth state (used by workers-oauth-provider + access-handler).
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "YOUR_OAUTH_KV_NAMESPACE_ID"
+    }
+  ],
+  // McpAgent stores each MCP session in a Durable Object.
+  "durable_objects": {
+    "bindings": [{ "name": "MCP_OBJECT", "class_name": "TrainingMCP" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TrainingMCP"] }]
+}

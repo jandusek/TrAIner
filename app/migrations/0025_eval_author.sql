@@ -1,0 +1,15 @@
+-- Record which model authored each evaluation, so the UI byline names it
+-- accurately instead of always crediting "Claude".
+--
+-- Two writers land in session_evals (see app/ARCHITECTURE.md → Write surfaces):
+--   * Claude-in-chat via the MCP set_session_eval tool   → 'claude'
+--   * the in-app "Generate evaluation" button (Workers AI, src/evaluate.ts)
+--     → the model id, e.g. '@cf/zai-org/glm-5.2', stored verbatim so a later
+--       model swap is recorded as whatever actually ran.
+--
+-- Left nullable with no backfill: rows written before this column existed have
+-- unrecoverable provenance (the button shipped ~1 day before this, so a handful
+-- of GLM-authored rows are indistinguishable from the Claude-authored bulk).
+-- The UI treats NULL as 'claude' — correct for the historical majority; any
+-- mislabeled button-era row corrects itself on the next regenerate.
+ALTER TABLE session_evals ADD COLUMN generated_by TEXT;

@@ -1,0 +1,15 @@
+node_modules/
+.wrangler/
+tmp/
+
+# Real deployed config — has the private hostnames. Copy wrangler.jsonc.example
+# to wrangler.jsonc and fill in real values (see README.md → Setup).
+wrangler.jsonc
+
+# Local secrets — wrangler reads .dev.vars for `wrangler dev`. Never commit.
+.dev.vars
+.dev.vars.*
+
+# Scratch ingest tokens used in manual testing.
+.test-token
+.test-token-*

@@ -1,0 +1,87 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "trainer-ingest",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "account_id": "YOUR_CLOUDFLARE_ACCOUNT_ID",
+  // Never expose the worker on *.workers.dev — only the custom domain below.
+  "workers_dev": false,
+  "preview_urls": false,
+  // Two custom domains, one worker. Auto-provisions DNS + cert on your zone.
+  // The worker branches on Host:
+  //   trainer-ingest.yourdomain.com → webhook only (per-user token, NOT behind Access)
+  //   trainer.yourdomain.com        → UI/API (gate the whole host with Cloudflare Access)
+  "routes": [
+    { "pattern": "trainer-ingest.yourdomain.com", "custom_domain": true },
+    { "pattern": "trainer.yourdomain.com", "custom_domain": true }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  // `npm run dev` (wrangler dev --local) uses this Host so the worker's own
+  // Host-based routing (see src/index.ts) resolves to the Access-gated app
+  // path locally, matching APP_HOST below.
+  "dev": {
+    "host": "trainer.yourdomain.com"
+  },
+  // Default (30s) can get eaten by a single HAE historical backfill request —
+  // one POST carries every matching workout at once (see ARCHITECTURE.md),
+  // each with per-second HR/swimDistance/route arrays to parse and reconstruct
+  // laps/routes for. Raise to the platform max as headroom; a stray runaway
+  // loop still gets killed, just later.
+  "limits": {
+    "cpu_ms": 300000
+  },
+  // Inline the UI as text modules: the front end lives in plain .css / .client.js
+  // files (no build step) and is bundled into the worker as strings, then served
+  // from renderHome / renderDetail. Keeps the React app source readable instead of
+  // escaped inside a template literal.
+  "rules": [{ "type": "Text", "globs": ["**/*.css", "**/*.client.js"], "fallthrough": true }],
+  // Cloudflare Access config for the UI/API routes. Fill these in after creating
+  // the Access application (see README.md → Setup, and ARCHITECTURE.md → Authentication).
+  // Not secrets — the AUD tag and team domain are safe to commit, but this whole
+  // file is gitignored anyway since the hostnames above are private. See
+  // wrangler.jsonc.example (this file) for the template that IS committed.
+  "vars": {
+    // Host-based routing. Webhook clients hit INGEST_HOST; humans hit APP_HOST.
+    "INGEST_HOST": "trainer-ingest.yourdomain.com",
+    "APP_HOST": "trainer.yourdomain.com",
+    // The MCP server's hostname (separate worker, see ../mcp/wrangler.jsonc) —
+    // only referenced to render the connection URL on the Settings page.
+    "MCP_HOST": "trainer-mcp.yourdomain.com",
+    "ACCESS_TEAM_DOMAIN": "https://your-team.cloudflareaccess.com",
+    "ACCESS_AUD": "YOUR_ACCESS_APPLICATION_AUDIENCE_TAG"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "LAST_PAYLOAD",
+      "id": "YOUR_LAST_PAYLOAD_KV_NAMESPACE_ID"
+    }
+  ],
+  // Workers AI — powers the on-demand workout evaluation (POST /api/evaluate,
+  // see src/evaluate.ts). A single glm-5.2 call per athlete-initiated request;
+  // no local emulation, so `wrangler dev` proxies this binding to the real API.
+  // To exercise this binding under `wrangler dev` (Workers AI has no local
+  // emulation), temporarily add `"experimental_remote": true` here and run
+  // `wrangler dev` without `--local`; the deployed worker uses real AI natively.
+  "ai": {
+    "binding": "AI"
+  },
+  // Raw HAE payload archive (source of truth; D1 is a derived cache).
+  "r2_buckets": [
+    {
+      "binding": "RAW",
+      "bucket_name": "training-raw"
+    }
+  ],
+  // User registry. Create with: wrangler d1 create training
+  // then paste the returned database_id below.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "training",
+      "database_id": "YOUR_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

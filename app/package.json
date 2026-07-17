@@ -1,0 +1,19 @@
+{
+  "name": "training-ingest",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260710.1",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.100.0"
+  },
+  "dependencies": {
+    "@garmin/fitsdk": "^21.208.0"
+  }
+}

@@ -1,0 +1,7 @@
+# Real MCP client config — has the private MCP server hostname. Copy
+# .mcp.json.example to .mcp.json and fill in your real URL (see README.md → Setup).
+.mcp.json
+tmp
+
+# Claude Code local tooling config (preview servers, personal settings)
+.claude/

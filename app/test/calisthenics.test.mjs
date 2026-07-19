@@ -114,6 +114,55 @@ test("push-ups use their own default baseline and target sets follow the last se
   assert.equal(p.target_sets, 5);
 });
 
+// ── per-set target sequence (every logged RIR drives its own set) ──────────
+
+test("bootstrap prescription carries a flat per-set sequence", () => {
+  const p = computePrescription("pullup", [], NOW);
+  assert.deepEqual(p.target_sequence, [5, 5, 5, 5, 5]);
+  assert.equal(p.last_sequence, null);
+});
+
+test("each set progresses off its own RIR, preserving the session shape", () => {
+  // 12 @ RIR 2 (+1), 10 @ RIR 4 (under-challenged, +2), 8 @ RIR 0 (hold)
+  const history = [session(1, [set(1, 12, 2), set(2, 10, 4), set(3, 8, 0)])];
+  const p = computePrescription("pushup", history, NOW);
+  assert.deepEqual(p.last_sequence, [12, 10, 8]);
+  assert.deepEqual(p.target_sequence, [13, 12, 8]);
+  assert.equal(p.target_sets, 3);
+  assert.equal(p.target_reps, 13); // top of the sequence
+});
+
+test("an AMRAP set within the session holds its reps while the others progress", () => {
+  const history = [session(1, [set(1, 15, null, true), set(2, 10, 2)])];
+  const p = computePrescription("pushup", history, NOW);
+  assert.deepEqual(p.target_sequence, [15, 11]);
+});
+
+test("gap easing scales the whole sequence, not just the top set", () => {
+  const history = [session(10, [set(1, 20, 2), set(2, 16, 1), set(3, 12, 1)])];
+  const p = computePrescription("pushup", history, NOW);
+  assert.deepEqual(p.target_sequence, [17, 14, 10]); // each round(r * 0.85)
+});
+
+test("floor rescales the whole sequence up while preserving its shape", () => {
+  const history = [
+    session(200, [set(1, 20, 0, true)]), // best-ever AMRAP 20 -> floor 13
+    session(30, [set(1, 5, 2), set(2, 4, 2), set(3, 3, 1)]),
+  ];
+  const p = computePrescription("pullup", history, NOW);
+  // 30-day soft restart: [4, 3, 2]; top 4 < floor 13 -> scale by 13/4.
+  assert.deepEqual(p.target_sequence, [13, 10, 7]);
+  assert.equal(p.target_reps, 13);
+  assert.match(p.note, /Floor applied/);
+});
+
+test("sequence follows set_num order regardless of stored row order", () => {
+  const history = [session(1, [set(3, 8, 1), set(1, 12, 2), set(2, 10, 2)])];
+  const p = computePrescription("pushup", history, NOW);
+  assert.deepEqual(p.last_sequence, [12, 10, 8]);
+  assert.deepEqual(p.target_sequence, [13, 11, 9]);
+});
+
 // ── summarizeSessions (per-session card stats: rep sequence + effort %) ────
 
 test("summarizeSessions: first-ever session has no prior best, so no effort_pct", () => {

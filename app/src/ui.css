@@ -775,7 +775,18 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
   box-shadow: 0 8px 22px -10px var(--accent);
 }
 
-/* Prescription card — the autoregulated target for today's top set. */
+/* Prescription card — today's autoregulated per-set targets. */
+.rxseq { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.45rem; }
+.rxseq__set {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  font-size: 1.15rem; font-weight: 500; color: var(--text);
+  border: 1px solid var(--line); border-radius: 0.55rem;
+  padding: 0.35rem 0.7rem; background: var(--surface);
+}
+.rxseq__set.is-next { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.rxseq__set.is-done { opacity: 0.45; text-decoration: line-through; }
+.rxcard__seq { margin-bottom: 0.9rem; }
+.rxcard__last { margin-top: 0.45rem; font-variant-numeric: tabular-nums; }
 .rxcard {
   border: 1px solid var(--line);
   border-radius: var(--radius);

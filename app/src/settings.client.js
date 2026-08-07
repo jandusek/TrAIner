@@ -8,6 +8,23 @@ import * as Ph from "@phosphor-icons/react";
 
 const BOOT = JSON.parse(document.getElementById("bootstrap").textContent);
 
+/* HDR glow — see home.client.js. Applied only to the profile Save, which is
+   the page's primary action. */
+const HDR_BRAND = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKdEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEvTbuMU6uEHFO7a1OsggKH7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjEuMS4xMDBXQYxMYXZmNjEuMS4xMDBEiYhAj0AAAAAAABZUrmvUrgEAAAAAAABL14EBc8WIP97QIMNc/a+cgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QHc1lA4JywgUC6gUCagQJVsJBVuoEQVbGBCVW7gQlVuYECElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYxLjEuMTAwc3PZY8CLY8WIP97QIMNc/a9nyKRFo4dFTkNPREVSRIeXTGF2YzYxLjMuMTAwIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z1QM/ngQCjt4EAAICSSYNCWAH4AfsEHBIODCkAABhgAAAlI///nKB4HN+GUJIpob3//1sfqqO////tORflwACjk4EAfQCWAECSnBBJwAADIAAAVHCjk4EA+gCWAECSnBBLIAADIAAAVHCjk4EBdwCWAECSnBBKQAADIAAAVHCjk4EB9ACWAECSnBBJQAADIAAAVHCjk4ECcQCWAECSnBBIIAADIAAAVHCjk4EC7gCWAECSnBBHoAADIAAAVHCjk4EDawCWAECSnBBHAAADIAAAVHAcU7trkbuPs4EAt4r3gQHxggGy8IED";
+
+function HdrGlow({ className }) {
+  return html`<video
+    class=${className}
+    src=${HDR_BRAND}
+    autoPlay
+    muted
+    loop
+    playsInline
+    aria-hidden="true"
+  />`;
+}
+
+
 function I({ name, ...rest }) {
   const C = Ph[name] || Ph.CircleDashed;
   return html`<${C} ...${rest} />`;
@@ -231,6 +248,7 @@ function Profile() {
             ></textarea>
             <div class="setup-actions">
               <button class="btn btn--accent" onClick=${save} disabled=${busy || !dirty}>
+                ${dirty && !busy ? html`<${HdrGlow} className="btn-hdr" />` : null}
                 <${I} name="FloppyDisk" size=${16} weight="bold" />${busy ? "Saving…" : "Save"}
               </button>
               ${!dirty && saved ? html`<span class="faint">Saved</span>` : null}

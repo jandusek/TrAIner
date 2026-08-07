@@ -1176,7 +1176,13 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .brand__mark { position: relative; overflow: hidden; }
 .brand__name { position: relative; }
 .filterchip.is-active { position: relative; isolation: isolate; }
-.btn--accent, .fab { position: relative; isolation: isolate; }
+.btn--accent { position: relative; isolation: isolate; }
+/* .fab is already position: fixed — do NOT add position: relative here. This
+   rule sits later in the file at equal specificity, so `relative` overrode the
+   `fixed` above and dropped the button out of the viewport into normal flow.
+   Fixed positioning already gives the glow layer a containing block; only the
+   stacking context is missing. */
+.fab { isolation: isolate; }
 
 .mark-hdr, .chip-hdr, .name-hdr, .btn-hdr {
   position: absolute; inset: 0; display: none; pointer-events: none;

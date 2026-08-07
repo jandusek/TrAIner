@@ -876,10 +876,20 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 }
 .repstep__btn:hover { border-color: var(--accent); color: var(--accent); }
 .repstep__value {
-  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
-  font-size: 3rem; font-weight: 500; line-height: 1;
   display: grid; justify-items: center; gap: 0.15rem; min-width: 5rem;
 }
+/* The readout is a real input — click and type. Dashed underline signals
+   editability without shouting; solid accent on focus. */
+.repstep__input {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  font-size: 3rem; font-weight: 500; line-height: 1;
+  width: 5rem; text-align: center;
+  background: none; border: none; color: var(--text);
+  border-bottom: 2px dashed var(--line-2); border-radius: 0;
+  padding: 0 0 0.1rem;
+}
+.repstep__input:focus { outline: none; border-bottom: 2px solid var(--accent); }
+.repstep__input::selection { background: var(--accent-dim); }
 .repstep__caption { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
 .rxcard {
   border: 1px solid var(--line);

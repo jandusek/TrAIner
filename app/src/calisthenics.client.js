@@ -117,16 +117,44 @@ function RepRoller({ value, onChange, min = 0, max = 40 }) {
 
 /* ── rep stepper (desktop) ────────────────────────────────────────────────
    A flick-wheel is a touch idiom; with a mouse it's just friction. Desktop
-   gets a big readout with −/+ buttons instead. */
+   gets a big readout with −/+ buttons — and the readout itself is a real
+   input, so a keyboard user can click it and type the number directly.
+   Local text state lets the field go momentarily empty/partial while
+   typing; the parsed, clamped value commits on blur or Enter. */
 function RepStepper({ value, onChange, min = 0, max = 40 }) {
-  const nudge = (delta) => onChange(Math.max(min, Math.min(max, value + delta)));
+  const [text, setText] = useState(String(value));
+  useEffect(() => setText(String(value)), [value]);
+
+  const clamp = (n) => Math.max(min, Math.min(max, n));
+  const nudge = (delta) => onChange(clamp(value + delta));
+  function commit() {
+    const n = parseInt(text, 10);
+    if (Number.isFinite(n)) onChange(clamp(n));
+    else setText(String(value));
+  }
+
   return html`
     <div class="repstep">
       <button type="button" class="repstep__btn" onClick=${() => nudge(-1)} aria-label="Decrease reps">
         <${I} name="Minus" size=${20} weight="bold" />
       </button>
       <div class="repstep__value">
-        ${value}
+        <input
+          class="repstep__input"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value=${text}
+          aria-label="Reps"
+          onInput=${(e) => setText(e.target.value.replace(/[^0-9]/g, ""))}
+          onBlur=${commit}
+          onKeyDown=${(e) => {
+            if (e.key === "Enter") e.target.blur();
+            else if (e.key === "ArrowUp") nudge(1);
+            else if (e.key === "ArrowDown") nudge(-1);
+          }}
+          onFocus=${(e) => e.target.select()}
+        />
         <span class="repstep__caption">reps</span>
       </div>
       <button type="button" class="repstep__btn" onClick=${() => nudge(1)} aria-label="Increase reps">

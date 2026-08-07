@@ -101,27 +101,27 @@
   --accent-2: #ec5022;
   --accent-ink: #191000;
   --accent-dim: rgba(251, 201, 81, 0.14);
-  --hot: #cb84cd;
-  --hot-dim: rgba(203, 132, 205, 0.13);
+  --hot: #31c1c3;
+  --hot-dim: rgba(49, 193, 195, 0.13);
   --gold: #fde2cc;
   --z1: #ec5022;
-  --z2: #dc7084;
-  --z3: #cb84cd;
-  --z4: #e2a99e;
+  --z2: #b3957d;
+  --z3: #31c1c3;
+  --z4: #acc896;
   --z5: #fbc951;
   --pz1: #ec5022;
-  --pz2: #e2676a;
-  --pz3: #d7789d;
-  --pz4: #cb84cd;
-  --pz5: #da9eaf;
-  --pz6: #eab48a;
+  --pz2: #c98264;
+  --pz3: #98a595;
+  --pz4: #31c1c3;
+  --pz5: #8dc7a6;
+  --pz6: #c8c983;
   --pz7: #fbc951;
 }
 @supports (color: color(display-p3 1 1 1)) {
   [data-theme="ember"] {
     --accent: color(display-p3 0.9603 0.5812 0.0552);
     --accent-2: color(display-p3 0.8162 0.0627 0.0019);
-    --hot: color(display-p3 0.5720 0.2155 0.6388);
+    --hot: color(display-p3 0.0618 0.5393 0.5674);
     --gold: color(display-p3 0.9746 0.7596 0.5847);
   }
 }

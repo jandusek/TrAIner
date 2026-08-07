@@ -946,6 +946,10 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
   display: grid; place-items: center;
   scroll-snap-align: center;
   font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  /* line box = glyph: the inherited body line-height (1.55) makes the
+     selected 2.3rem numeral's line box taller than its 48px row, which
+     nudges the glyph visibly off the highlight band's vertical center. */
+  line-height: 1;
   font-size: 1.5rem; color: var(--faint);
   transition: color 0.15s, font-size 0.15s, opacity 0.15s;
   opacity: 0.5;

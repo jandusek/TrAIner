@@ -680,18 +680,22 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .rise { animation: rise 0.5s var(--ease-pop) both; }
 
 /* ── Next-session focus callout (Claude-authored, read-only) ───────────────── */
+/* Drift rather than the accent: this block is forward-looking advice, not a
+   reading of the session, so it should not compete with the accent that marks
+   live values and primary actions. --hot already carries Drift, and the
+   .badge--focus icon on the home cards uses it too, so the two views agree. */
 .focus {
   margin-top: 1.6rem;
   padding: 1rem 1.2rem;
-  border: 1px solid var(--accent-dim);
-  border-left: 3px solid var(--accent);
+  border: 1px solid var(--hot-dim);
+  border-left: 3px solid var(--hot);
   border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, var(--accent-dim), transparent);
+  background: linear-gradient(180deg, var(--hot-dim), transparent);
 }
 .focus__head {
   display: flex; align-items: center; gap: 0.5rem;
   font-family: var(--font-display); font-weight: 700; font-size: 0.95rem;
-  color: var(--accent); margin-bottom: 0.6rem;
+  color: var(--hot); margin-bottom: 0.6rem;
 }
 .focus__list { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; }
 .focus__list li { line-height: 1.5; color: var(--text); }

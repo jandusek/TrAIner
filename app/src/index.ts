@@ -204,6 +204,23 @@ async function appHost(req: Request, env: Env, url: URL): Promise<Response> {
   }
   const user = await getOrCreateUserByEmail(env.DB, identity.email);
 
+  // Theme glow assets. Each theme's HDR gradient is a distinct Rec.2020 PQ
+  // video; serving them here keeps four copies out of all three client
+  // bundles. Content-hashed by theme name and immutable — they only change
+  // when a theme's colours do.
+  if (pathname.startsWith("/glow/") && req.method === "GET") {
+    const key = decodeURIComponent(pathname.slice(6)).replace(/\.webm$/, "");
+    const b64 = GLOW_WEBM[key];
+    if (!b64) return new Response("Not found", { status: 404 });
+    const bin = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+    return new Response(bin, {
+      headers: {
+        "content-type": "video/webm",
+        "cache-control": "public, max-age=31536000, immutable",
+      },
+    });
+  }
+
   if (pathname === "/" && req.method === "GET") {
     return htmlResponse(renderHome(user));
   }
@@ -1157,6 +1174,10 @@ function htmlResponse(html: string): Response {
 // Pinned ESM dependency graph for the buildless React front end. Import-map keeps
 // a single React instance across htm, Phosphor icons and Tiptap (?external=react
 // leaves their `react` specifier bare so it resolves here).
+const GLOW_WEBM: Record<string, string> = {"white@300": "GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKIEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEvTbuMU6uEHFO7a1OsggJy7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjEuMS4xMDBXQYxMYXZmNjEuMS4xMDBEiYhAj0AAAAAAABZUrmvUrgEAAAAAAABL14EBc8WIKlP77ZXEZO+cgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QHc1lA4JywgUC6gUCagQJVsJBVuoEQVbGBCVW7gQlVuYECElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYxLjEuMTAwc3PZY8CLY8WIKlP77ZXEZO9nyKRFo4dFTkNPREVSRIeXTGF2YzYxLjMuMTAwIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z1QLrngQCjooEAAICSSYNCWAH4AfsAHBIODCkAABhgAABnP//8FME7swCjk4EAfQCWAECSnABJwAADIAAAVHCjk4EA+gCWAECSnABLIAADIAAAVHCjk4EBdwCWAECSnABKQAADIAAAVHCjk4EB9ACWAECSnABJQAADIAAAVHCjk4ECcQCWAECSnABIIAADIAAAVHCjk4EC7gCWAECSnABHoAADIAAAVHCjk4EDawCWAECSnABHAAADIAAAVHAcU7trkbuPs4EAt4r3gQHxggGy8IED", "white@500": "GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKIEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEvTbuMU6uEHFO7a1OsggJy7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjEuMS4xMDBXQYxMYXZmNjEuMS4xMDBEiYhAj0AAAAAAABZUrmvUrgEAAAAAAABL14EBc8WIXrm2mS3vHiacgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QHc1lA4JywgUC6gUCagQJVsJBVuoEQVbGBCVW7gQlVuYECElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYxLjEuMTAwc3PZY8CLY8WIXrm2mS3vHiZnyKRFo4dFTkNPREVSRIeXTGF2YzYxLjMuMTAwIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z1QLrngQCjooEAAICSSYNCWAH4AfsAHBIODCkAABhgAABnP//9ryCd2YCjk4EAfQCWAECSnABJwAADIAAAVHCjk4EA+gCWAECSnABLIAADIAAAVHCjk4EBdwCWAECSnABKQAADIAAAVHCjk4EB9ACWAECSnABJQAADIAAAVHCjk4ECcQCWAECSnABIIAADIAAAVHCjk4EC7gCWAECSnABHoAADIAAAVHCjk4EDawCWAECSnABHAAADIAAAVHAcU7trkbuPs4EAt4r3gQHxggGy8IED", "white@700": "GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKIEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEvTbuMU6uEHFO7a1OsggJy7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjEuMS4xMDBXQYxMYXZmNjEuMS4xMDBEiYhAj0AAAAAAABZUrmvUrgEAAAAAAABL14EBc8WIFjufspZjR0ucgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QHc1lA4JywgUC6gUCagQJVsJBVuoEQVbGBCVW7gQlVuYECElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYxLjEuMTAwc3PZY8CLY8WIFjufspZjR0tnyKRFo4dFTkNPREVSRIeXTGF2YzYxLjMuMTAwIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z1QLrngQCjooEAAICSSYNCWAH4AfsAHBIODCkAABhgAABnP//9/HQndmCjk4EAfQCWAECSnABJwAADIAAAVHCjk4EA+gCWAECSnABLIAADIAAAVHCjk4EBdwCWAECSnABKQAADIAAAVHCjk4EB9ACWAECSnABJQAADIAAAVHCjk4ECcQCWAECSnABIIAADIAAAVHCjk4EC7gCWAECSnABHoAADIAAAVHCjk4EDawCWAECSnABHAAADIAAAVHAcU7trkbuPs4EAt4r3gQHxggGy8IED", "white@1200": "GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKIEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEvTbuMU6uEHFO7a1OsggJy7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjEuMS4xMDBXQYxMYXZmNjEuMS4xMDBEiYhAj0AAAAAAABZUrmvUrgEAAAAAAABL14EBc8WIh0IP2rBumiecgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QHc1lA4JywgUC6gUCagQJVsJBVuoEQVbGBCVW7gQlVuYECElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYxLjEuMTAwc3PZY8CLY8WIh0IP2rBumidnyKRFo4dFTkNPREVSRIeXTGF2YzYxLjMuMTAwIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z1QLrngQCjooEAAICSSYNCWAH4AfsAHBIODCkAABhgAABnP//+mVYndmCjk4EAfQCWAECSnABJwAADIAAAVHCjk4EA+gCWAECSnABLIAADIAAAVHCjk4EBdwCWAECSnABKQAADIAAAVHCjk4EB9ACWAECSnABJQAADIAAAVHCjk4ECcQCWAECSnABIIAADIAAAVHCjk4EC7gCWAECSnABHoAADIAAAVHCjk4EDawCWAECSnABHAAADIAAAVHAcU7trkbuPs4EAt4r3gQHxggGy8IED"};
+
+const GLOW_VER: Record<string, string> = {"white@300": "9ec94904", "white@500": "af119856", "white@700": "9705d7b4", "white@1200": "1aab4c09"};
+
 const IMPORTMAP = JSON.stringify({
   imports: {
     react: "https://esm.sh/react@18.3.1",
@@ -1209,11 +1230,16 @@ function page(title: string, boot: unknown, client: string, headExtra = ""): str
 <link rel="stylesheet" href="${FONTS}" />
 ${headExtra}
 <script type="importmap">${IMPORTMAP}</script>
+<script>window.__GLOW_VER=${JSON.stringify(GLOW_VER)};window.__HDR_LEVELS=[300, 500, 700, 1200];(function(){try{var t=localStorage.getItem("trainer.theme");if(t&&t!=="illuminate")document.documentElement.dataset.theme=t;var n=localStorage.getItem("trainer.hdr");if(n)document.documentElement.dataset.hdr=n;}catch(e){}})();</script>
 <style>${UI_CSS}</style>
 </head>
 <body>
 <div class="glow" aria-hidden="true"></div>
 <div id="root"></div>
+<svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
+<linearGradient id="sportGrad" gradientUnits="userSpaceOnUse" x1="40" y1="32" x2="216" y2="224">
+<stop offset="0" stop-color="#afffa9"/><stop offset="1" stop-color="#3fdcc9"/>
+</linearGradient></defs></svg>
 <script id="bootstrap" type="application/json">${bootJson}</script>
 <script type="module">${client}</script>
 </body>

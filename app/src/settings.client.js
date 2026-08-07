@@ -8,6 +8,217 @@ import * as Ph from "@phosphor-icons/react";
 
 const BOOT = JSON.parse(document.getElementById("bootstrap").textContent);
 
+/* HDR glow — see home.client.js. Applied only to the profile Save, which is
+   the page's primary action. */
+const themeKey = () => document.documentElement.dataset.theme || "illuminate";
+/* Peak luminance is user-set; "off" is handled in CSS so the element stays
+   mounted and toggling costs nothing. */
+const hdrNits = () => {
+  const v = document.documentElement.dataset.hdr;
+  return v && v !== "off" ? v : "500";
+};
+/* One asset per nit level, shared by every theme — the colour comes from
+   .glow-tint in CSS, not from the video. */
+const glowSrc = (nits) => {
+  const k = `white@${nits || hdrNits()}`;
+  return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
+};
+
+
+/* ── Theme picker ──────────────────────────────────────────────────────────
+   Themes are pure CSS: each owns the accent family and the two zone scales,
+   selected by data-theme on <html> (see ui.css). Switching is therefore a
+   single attribute write — no re-render, no reload.
+
+   The choice is persisted to localStorage and re-applied by an inline script
+   in the page shell that runs before the stylesheet, so a reload does not
+   flash Illuminate before settling on the saved theme. */
+const THEMES = {
+  "illuminate": {
+    "label": "Illuminate",
+    "swatches": [
+      "#d6f87e",
+      "#3fdcc9",
+      "#a8aedd",
+      "#00a2b8"
+    ]
+  },
+  "sonar": {
+    "label": "Sonar",
+    "swatches": [
+      "#bd86f8",
+      "#427ff6",
+      "#47e0e2",
+      "#58d8ae"
+    ]
+  },
+  "ember": {
+    "label": "Ember",
+    "swatches": [
+      "#fbc951",
+      "#ec5022",
+      "#31c1c3",
+      "#fde2cc"
+    ]
+  },
+  "flare": {
+    "label": "Flare",
+    "swatches": [
+      "#ed2a8b",
+      "#f9ac3d",
+      "#f56333",
+      "#fddec6"
+    ]
+  }
+};
+const THEME_KEY = "trainer.theme";
+
+function currentTheme() {
+  return document.documentElement.dataset.theme || "illuminate";
+}
+
+
+/* Repoint every mounted glow. Their src was resolved when their component last
+   rendered, and those components are siblings of the pickers here, so setState
+   never reaches them — without this they keep the previous theme or level
+   until a reload. */
+function repointGlows(nits) {
+  const k = `white@${nits}`;
+  const v = (window.__GLOW_VER || {})[k] || "";
+  document
+    .querySelectorAll(".hdrglow-vid")
+    .forEach((el) => {
+      el.src = `/glow/${encodeURIComponent(k)}.webm?v=${v}`;
+      el.play().catch(() => {});
+    });
+}
+
+const HDR_KEY = "trainer.hdr";
+
+function HdrPicker() {
+  const levels = window.__HDR_LEVELS || [300, 500, 700, 1200];
+  const [nits, setNits] = useState(
+    () => document.documentElement.dataset.hdr || "500",
+  );
+  function pick(v) {
+    document.documentElement.dataset.hdr = v;
+    try {
+      localStorage.setItem(HDR_KEY, v);
+    } catch (e) {
+      /* private mode — applies for this session only */
+    }
+    if (v !== "off") repointGlows(v);
+    setNits(v);
+  }
+  const opts = [...levels.map(String), "off"];
+  return html`
+    <div class="panel open">
+      <div class="panel__summary">
+        <${I} name="Sun" size=${18} weight="duotone" />Glow brightness
+      </div>
+      <div class="panel__body">
+        <p>
+          Peak luminance of the logo, pills and buttons, in nits. Only visible on
+          an HDR display — SDR screens show the flat gradient whatever you pick.
+          Higher is not automatically better: it depends on your display's
+          headroom, and past it everything simply clips to maximum.
+        </p>
+        <div class="hdrgrid">
+          ${opts.map(
+            (v) => html`
+              <button
+                key=${v}
+                type="button"
+                class=${`hdrcard ${v === "off" ? "hdrcard--off" : ""} ${
+                  nits === v ? "is-active" : ""
+                }`}
+                onClick=${() => pick(v)}
+                aria-pressed=${nits === v}
+              >
+                ${v !== "off" && nits === v
+                  ? html`<${HdrGlow} className="btn-hdr" nits=${v} />`
+                  : null}
+                ${v === "off" ? "Off" : `${v} nits`}
+              </button>
+            `,
+          )}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function ThemePicker() {
+  const [theme, setTheme] = useState(currentTheme());
+  function pick(key) {
+    if (key === "illuminate") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = key;
+    try {
+      localStorage.setItem(THEME_KEY, key);
+    } catch (e) {
+      /* private mode — the theme still applies for this session */
+    }
+    /* Tokens repaint on their own, but every HDR glow is a <video> whose src
+       was resolved when its component last rendered. Those components are
+       siblings of this one, so setTheme does not reach them and they would
+       keep the old theme's video until a reload. Repoint them directly. */
+    /* No repointing needed any more: the glow's colour is a CSS token, so it
+       repaints with the theme. Only the nit level changes the video src. */
+    setTheme(key);
+  }
+  return html`
+    <div class="panel open">
+      <div class="panel__summary">
+        <${I} name="Palette" size=${18} weight="duotone" />Colour theme
+      </div>
+      <div class="panel__body">
+        <p>Applies everywhere — accents, charts, zone scales and the HDR glow.</p>
+        <div class="themegrid">
+          ${Object.entries(THEMES).map(
+            ([key, t]) => html`
+              <button
+                key=${key}
+                type="button"
+                class=${`themecard ${theme === key ? "is-active" : ""}`}
+                data-theme-preview=${key}
+                onClick=${() => pick(key)}
+                aria-pressed=${theme === key}
+              >
+                <span class="themecard__swatches">
+                  ${t.swatches.map(
+                    (c, i) =>
+                      html`<i key=${i} style=${{ background: c }}></i>`,
+                  )}
+                </span>
+                <span class="themecard__name">${t.label}</span>
+                ${theme === key
+                  ? html`<${I} name="Check" size=${14} weight="bold" />`
+                  : null}
+              </button>
+            `,
+          )}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function HdrGlow({ className, nits }) {
+  return html`<span class=${`hdrglow ${className}`}>
+    <video
+      class="hdrglow-vid"
+      src=${glowSrc(nits)}
+      autoPlay
+      muted
+      loop
+      playsInline
+      aria-hidden="true"
+    />
+    <span class="hdrglow-tint"></span>
+  </span>`;
+}
+
+
 function I({ name, ...rest }) {
   const C = Ph[name] || Ph.CircleDashed;
   return html`<${C} ...${rest} />`;
@@ -231,6 +442,7 @@ function Profile() {
             ></textarea>
             <div class="setup-actions">
               <button class="btn btn--accent" onClick=${save} disabled=${busy || !dirty}>
+                <${HdrGlow} className="btn-hdr" />
                 <${I} name="FloppyDisk" size=${16} weight="bold" />${busy ? "Saving…" : "Save"}
               </button>
               ${!dirty && saved ? html`<span class="faint">Saved</span>` : null}
@@ -252,6 +464,10 @@ function App() {
 
       <div class="section-label">You</div>
       <${Profile} />
+
+      <div class="section-label">Appearance</div>
+      <${ThemePicker} />
+      <${HdrPicker} />
 
       <div class="section-label">Data sources</div>
       <${Webhook} />

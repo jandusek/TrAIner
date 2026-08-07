@@ -6,26 +6,19 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --bg: #070c0f;
-  --surface: #0e1519;
-  --surface-2: #111c21;
-  --elevated: #16242a;
+  --bg: #020202;
+  --surface: #0a0a0a;
+  --surface-2: #101010;
+  --elevated: #171717;
 
-  --line: rgba(126, 176, 168, 0.12);
-  --line-2: rgba(126, 176, 168, 0.24);
+  --line: rgba(152, 171, 151, 0.12);
+  --line-2: rgba(152, 171, 151, 0.24);
 
-  --text: #e9f2ef;
-  --muted: #91a8a2;
-  --faint: #62756f;
+  --text: #eaf1e9;
+  --muted: #97a296;
+  --faint: #626c62;
 
-  --accent: #2fe0c0;
-  --accent-2: #14b89c;
-  --accent-ink: #04211b;
-  --accent-dim: rgba(47, 224, 192, 0.14);
-
-  --hot: #ff7d68;
-  --hot-dim: rgba(255, 125, 104, 0.13);
-  --gold: #ffce73;
+  /* accent family is theme-owned — see the theme blocks below */
 
   --radius: 16px;
   --radius-sm: 10px;
@@ -37,6 +30,131 @@
   --ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1.45);
   color-scheme: dark;
 }
+
+/* ── Themes ───────────────────────────────────────────────────────────────
+   Each theme owns the accent family and both zone scales. Neutrals are
+   shared: the ground is near-black everywhere, so only what sits on it
+   changes. Illuminate is on :root and is therefore the default when no
+   data-theme is set. Zone ramps run hot -> accent-2 -> accent in OKLCH
+   along the shortest hue arc, so intensity reads as rising luminance. */
+
+:root {
+  --accent: #d6f87e;
+  --accent-2: #3fdcc9;
+  --accent-ink: #0e1400;
+  --accent-dim: rgba(214, 248, 126, 0.14);
+  --hot: #a8aedd;
+  --hot-dim: rgba(168, 174, 221, 0.13);
+  --gold: #00a2b8;
+  --z1: #a8aedd;
+  --z2: #83c6d3;
+  --z3: #3fdcc9;
+  --z4: #98eba9;
+  --z5: #d6f87e;
+  --pz1: #a8aedd;
+  --pz2: #91bed7;
+  --pz3: #72cdd0;
+  --pz4: #3fdcc9;
+  --pz5: #80e6b5;
+  --pz6: #aef09d;
+  --pz7: #d6f87e;
+}
+@supports (color: color(display-p3 1 1 1)) {
+  :root {
+    --accent: color(display-p3 0.8562 0.9788 0.4587);
+    --accent-2: color(display-p3 0.3371 0.8690 0.7956);
+    --hot: color(display-p3 0.6560 0.6770 0.8854);
+    --gold: color(display-p3 0.1569 0.6360 0.7415);
+  }
+}
+[data-theme="sonar"] {
+  --accent: #bd86f8;
+  --accent-2: #427ff6;
+  --accent-ink: #180926;
+  --accent-dim: rgba(189, 134, 248, 0.14);
+  --hot: #47e0e2;
+  --hot-dim: rgba(71, 224, 226, 0.13);
+  --gold: #58d8ae;
+  --z1: #427ff6;
+  --z2: #8784f7;
+  --z3: #bd86f8;
+  --z4: #98b6ee;
+  --z5: #47e0e2;
+  --pz1: #427ff6;
+  --pz2: #7383f7;
+  --pz3: #9a85f8;
+  --pz4: #bd86f8;
+  --pz5: #a6a7f2;
+  --pz6: #85c5ea;
+  --pz7: #47e0e2;
+}
+@supports (color: color(display-p3 1 1 1)) {
+  [data-theme="sonar"] {
+    --accent: color(display-p3 0.7216 0.5050 1.0000);
+    --accent-2: color(display-p3 0.2782 0.4757 1.0000);
+    --hot: color(display-p3 0.3574 0.8827 0.9011);
+    --gold: color(display-p3 0.4071 0.8545 0.6807);
+  }
+}
+[data-theme="ember"] {
+  --accent: #fbc951;
+  --accent-2: #ec5022;
+  --accent-ink: #191000;
+  --accent-dim: rgba(251, 201, 81, 0.14);
+  --hot: #31c1c3;
+  --hot-dim: rgba(49, 193, 195, 0.13);
+  --gold: #fde2cc;
+  --z1: #ec5022;
+  --z2: #b3957d;
+  --z3: #31c1c3;
+  --z4: #acc896;
+  --z5: #fbc951;
+  --pz1: #ec5022;
+  --pz2: #c98264;
+  --pz3: #98a595;
+  --pz4: #31c1c3;
+  --pz5: #8dc7a6;
+  --pz6: #c8c983;
+  --pz7: #fbc951;
+}
+@supports (color: color(display-p3 1 1 1)) {
+  [data-theme="ember"] {
+    --accent: color(display-p3 0.9824 0.7865 0.2606);
+    --accent-2: color(display-p3 0.9144 0.2778 0.0246);
+    --hot: color(display-p3 0.2757 0.7606 0.7781);
+    --gold: color(display-p3 0.9887 0.8858 0.7886);
+  }
+}
+[data-theme="flare"] {
+  --accent: #ed2a8b;
+  --accent-2: #f9ac3d;
+  --accent-ink: #250412;
+  --accent-dim: rgba(237, 42, 139, 0.14);
+  --hot: #f56333;
+  --hot-dim: rgba(245, 99, 51, 0.13);
+  --gold: #fddec6;
+  --z1: #ed2a8b;
+  --z2: #f14d68;
+  --z3: #f56333;
+  --z4: #f88938;
+  --z5: #f9ac3d;
+  --pz1: #ed2a8b;
+  --pz2: #f04474;
+  --pz3: #f2555a;
+  --pz4: #f56333;
+  --pz5: #f77d36;
+  --pz6: #f9953a;
+  --pz7: #f9ac3d;
+}
+@supports (color: color(display-p3 1 1 1)) {
+  [data-theme="flare"] {
+    --accent: color(display-p3 0.9130 0.0277 0.5383);
+    --accent-2: color(display-p3 0.9705 0.6685 0.1684);
+    --hot: color(display-p3 0.9493 0.3615 0.1345);
+    --gold: color(display-p3 0.9882 0.8699 0.7638);
+  }
+}
+
 
 * { box-sizing: border-box; }
 
@@ -62,16 +180,18 @@ body {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(60rem 40rem at 8% -10%, rgba(47, 224, 192, 0.10), transparent 60%),
-    radial-gradient(50rem 40rem at 105% 110%, rgba(255, 125, 104, 0.06), transparent 55%),
-    linear-gradient(180deg, #08110f 0%, var(--bg) 40%);
+    radial-gradient(60rem 40rem at 8% -10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
+    radial-gradient(50rem 40rem at 105% 110%, color-mix(in srgb, var(--hot) 6%, transparent), transparent 55%),
+    linear-gradient(180deg, #060606 0%, var(--bg) 40%);
 }
 .glow::after {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.4;
-  mix-blend-mode: overlay;
+  /* `overlay` computes 2*backdrop*source, which annihilates the grain against
+     a #020202 ground. `screen` adds light instead, so it survives. */
+  opacity: 0.12;
+  mix-blend-mode: screen;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
 }
 
@@ -240,8 +360,10 @@ a { color: inherit; text-decoration: none; }
   display: grid; place-items: center;
   border-radius: 13px;
   color: var(--accent);
-  background: radial-gradient(120% 120% at 30% 20%, rgba(47, 224, 192, 0.18), rgba(47, 224, 192, 0.04));
-  border: 1px solid var(--accent-dim);
+  /* Tile removed — the glyph sits bare on the card. The 3rem box stays: it
+     holds the grid column, so titles and dates keep their alignment. */
+  background: none;
+  border: none;
 }
 .card__title {
   font-family: var(--font-display);
@@ -405,8 +527,8 @@ a { color: inherit; text-decoration: none; }
   display: flex; align-items: flex-start; gap: 0.55rem;
   margin-top: 0.9rem; padding: 0.65rem 0.85rem;
   font-size: 0.82rem; line-height: 1.45; color: var(--gold);
-  background: rgba(255, 206, 115, 0.08);
-  border: 1px solid rgba(255, 206, 115, 0.22); border-radius: 10px;
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent); border-radius: 10px;
 }
 .callout svg { flex: none; margin-top: 0.1rem; }
 .callout strong { color: var(--gold); }
@@ -431,8 +553,8 @@ a { color: inherit; text-decoration: none; }
   display: grid; place-items: center;
   border-radius: 16px;
   color: var(--accent);
-  background: radial-gradient(120% 120% at 30% 20%, rgba(47, 224, 192, 0.2), rgba(47, 224, 192, 0.05));
-  border: 1px solid var(--accent-dim);
+  background: none;
+  border: none;
   flex: none;
 }
 .hero__title {
@@ -595,7 +717,10 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .chk input:checked + .chk__box {
   background: linear-gradient(150deg, var(--accent), var(--accent-2));
   border-color: transparent;
-  box-shadow: 0 0 0 4px var(--accent-dim), 0 6px 16px -6px var(--accent);
+  /* A tight ring only. The previous 4px halo plus a 16px coloured drop-shadow
+     bloomed around every box and, down a column of laps, read as a rendering
+     fault rather than as checked state. */
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
 .chk input:checked + .chk__box svg { opacity: 1; transform: scale(1) rotate(0); }
 .chk input:focus-visible + .chk__box { box-shadow: 0 0 0 3px var(--accent-dim); }
@@ -662,18 +787,22 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .rise { animation: rise 0.5s var(--ease-pop) both; }
 
 /* ── Next-session focus callout (Claude-authored, read-only) ───────────────── */
+/* Drift rather than the accent: this block is forward-looking advice, not a
+   reading of the session, so it should not compete with the accent that marks
+   live values and primary actions. --hot already carries Drift, and the
+   .badge--focus icon on the home cards uses it too, so the two views agree. */
 .focus {
   margin-top: 1.6rem;
   padding: 1rem 1.2rem;
-  border: 1px solid var(--accent-dim);
-  border-left: 3px solid var(--accent);
+  border: 1px solid var(--hot-dim);
+  border-left: 3px solid var(--hot);
   border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, var(--accent-dim), transparent);
+  background: linear-gradient(180deg, var(--hot-dim), transparent);
 }
 .focus__head {
   display: flex; align-items: center; gap: 0.5rem;
   font-family: var(--font-display); font-weight: 700; font-size: 0.95rem;
-  color: var(--accent); margin-bottom: 0.6rem;
+  color: var(--hot); margin-bottom: 0.6rem;
 }
 .focus__list { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; }
 .focus__list li { line-height: 1.5; color: var(--text); }
@@ -821,8 +950,8 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .slot.is-active { outline: 2px solid var(--accent); outline-offset: 2px; }
 .slot--add .slot__reps { color: var(--muted); }
 @keyframes slot-breathe {
-  0%, 100% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 0 0 rgba(47, 224, 192, 0); }
-  50% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 14px -2px rgba(47, 224, 192, 0.45); }
+  0%, 100% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 14px -2px color-mix(in srgb, var(--accent) 45%, transparent); }
 }
 .slot:focus-visible, .chip:focus-visible, .repstep__btn:focus-visible,
 .sheet__close:focus-visible, .roller__btn:focus-visible, .stepbtn:focus-visible {
@@ -1128,4 +1257,165 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Illuminate 750 — brand gradient on glyphs, and HDR chrome.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Phosphor renders duotone icons as fills (a 0.2-opacity shape plus the solid
+   one), not strokes — so the paint server goes on `fill`. `fill` inherits, so
+   setting it on the <svg> reaches both layers. The gradient itself is defined
+   once in the page shell (see index.ts, #sportGrad). */
+.card__icon svg,
+.hero__icon svg { fill: url(#sportGrad); }
+
+/* ── HDR chrome ────────────────────────────────────────────────────────────
+   CSS colour cannot exceed SDR white — only real HDR content can. Each glowing
+   element therefore carries its own Rec.2020 PQ video. Applied only to chrome
+   there is exactly one of (logo, active pill, the "AI"); deliberately NOT to
+   per-row sport icons, which would mean one decoding video per workout.
+
+   Everything is gated behind an actual HDR display: PQ content tone-maps to a
+   flat grey on SDR, which would strip the brand colour. On SDR none of this
+   renders and the ordinary CSS gradients stand. */
+/* No overflow: hidden here. A rounded clipping container forces the subtree
+   into a composited buffer that tone-maps to SDR — it was the only glow host
+   with one, and the only glow that stopped being HDR. The layers round
+   themselves via border-radius: inherit instead. */
+.brand__mark { position: relative; }
+.brand__name { position: relative; }
+.filterchip.is-active { position: relative; isolation: isolate; }
+.btn--accent { position: relative; isolation: isolate; }
+/* .fab is already position: fixed — do NOT add position: relative here. This
+   rule sits later in the file at equal specificity, so `relative` overrode the
+   `fixed` above and dropped the button out of the viewport into normal flow.
+   Fixed positioning already gives the glow layer a containing block; only the
+   stacking context is missing. */
+.fab { isolation: isolate; }
+
+/* One white PQ video per nit level, tinted by CSS. The colour is a token
+   again, so a new theme costs no assets and a theme switch repaints like any
+   other variable — no repointing, no per-theme URLs. Multiply is what makes
+   it work: it scales channels rather than clamping, so HDR white x accent
+   stays above SDR white. */
+.mark-hdr, .chip-hdr, .name-hdr, .btn-hdr {
+  position: absolute; inset: 0; display: none; pointer-events: none;
+}
+.hdrglow {
+  position: absolute; inset: 0;
+  border-radius: inherit; isolation: isolate;
+}
+.hdrglow-vid {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border-radius: inherit;
+}
+.hdrglow-tint {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--accent) 86%, white),
+    color-mix(in srgb, var(--accent-2) 86%, white)
+  );
+  mix-blend-mode: multiply;
+}
+.chip-hdr, .btn-hdr { z-index: -1; }
+.brand__mark svg { position: relative; z-index: 1; }
+
+@supports (dynamic-range-limit: no-limit) {
+  @media (dynamic-range: high) {
+    .mark-hdr, .chip-hdr, .name-hdr, .btn-hdr { display: block; dynamic-range-limit: no-limit; }
+    /* Peak luminance is a preference (Settings -> Appearance): displays differ
+       a lot in headroom, and "off" has to be available for anyone who finds
+       the glow distracting. Off is handled here rather than by withholding the
+       src, so the elements stay in the DOM and the toggle is instant. */
+    html[data-hdr="off"] .mark-hdr,
+    html[data-hdr="off"] .chip-hdr,
+    html[data-hdr="off"] .name-hdr,
+    html[data-hdr="off"] .btn-hdr { display: none; }
+    /* only the "AI" is hidden — nothing light sits under it, so its
+       anti-aliased mask edges have nothing to halo against */
+    .brand__ai.is-hdr { color: transparent; }
+  }
+}
+
+/* Sport-glyph gradient follows the live theme. The stops are CSS-driven so a
+   theme switch repaints them without touching the SVG in the shell. */
+/* Glyphs share the chrome's gradient: accent -> accent-2, the same pair the
+   logo, pills, CTAs and FAB carry, so one gradient runs through the whole UI.
+   (Briefly moved to accent-2 -> gold to stop the icons echoing the chrome;
+   matching turned out to read better than contrasting.) */
+#sportGrad stop:first-child { stop-color: var(--accent); }
+#sportGrad stop:last-child { stop-color: var(--accent-2); }
+
+/* ── Theme picker ─────────────────────────────────────────────────────────── */
+.themegrid {
+  display: grid; gap: 0.6rem; margin-top: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+}
+.themecard {
+  display: flex; align-items: center; gap: 0.6rem;
+  font: inherit; font-size: 0.85rem; text-align: left;
+  padding: 0.7rem 0.8rem; cursor: pointer;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  transition: border-color 0.18s, color 0.18s, transform 0.12s var(--ease-pop);
+}
+.themecard:hover { color: var(--text); border-color: var(--line-2); }
+.themecard:active { transform: scale(0.97); }
+.themecard:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-dim); }
+.themecard.is-active { color: var(--text); border-color: var(--accent); }
+.themecard.is-active svg { color: var(--accent); margin-left: auto; }
+.themecard__swatches { display: flex; flex: none; }
+/* overlapped discs read as a palette rather than three unrelated chips */
+.themecard__swatches i {
+  width: 0.9rem; height: 0.9rem; border-radius: 999px;
+  border: 2px solid var(--surface-2); margin-right: -0.4rem;
+}
+.themecard__swatches i:last-child { margin-right: 0; }
+.themecard__name { font-weight: 600; letter-spacing: 0.01em; }
+
+.hdrgrid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+.hdrcard {
+  /* Each button previews its own level rather than the selected one, so the
+     row is a live ladder: pick the brightest that still looks like light
+     rather than a blown highlight on your display. */
+  position: relative; isolation: isolate;
+  font: inherit; font-family: var(--font-mono); font-size: 0.8rem;
+  padding: 0.5rem 0.85rem; cursor: pointer;
+  color: var(--muted); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 999px;
+  transition: color 0.15s, border-color 0.15s, transform 0.12s var(--ease-pop);
+}
+.hdrcard:hover { color: var(--text); border-color: var(--line-2); }
+.hdrcard:active { transform: scale(0.96); }
+.hdrcard:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-dim); }
+/* Same gradient as the pills, FAB and CTAs — Off differs from the other
+   levels only in having no glow over it, not in being a different control. */
+.hdrcard.is-active {
+  color: var(--accent-ink);
+  background: linear-gradient(150deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+}
+
+@supports (dynamic-range-limit: no-limit) {
+  @media (dynamic-range: high) {
+    .brand__mark--tint.is-hdr .mark-tint { display: block; }
+    html[data-hdr="off"] .mark-tint { display: none; }
+  }
+}
+
+@supports (dynamic-range-limit: no-limit) {
+  @media (dynamic-range: high) {
+    /* Only the selected level is lit, and only it takes the on-accent ink.
+       Lighting all four meant a click had to repoint every preview, which
+       dragged them all to the chosen level anyway — and Off, having no glow,
+       ended up with near-black text on a dark surface. */
+    .hdrcard.is-active:not(.hdrcard--off) {
+      color: var(--accent-ink); border-color: transparent;
+    }
+    html[data-hdr="off"] .hdrcard:not(.is-active) { color: var(--muted); }
+  }
 }

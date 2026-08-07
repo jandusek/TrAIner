@@ -40,8 +40,8 @@ function useDesktop() {
    iOS-picker-style vertical wheel: scroll-snap for a quick flick, plus
    chevron buttons stacked above/below for a precise single-finger nudge —
    both drive the same `value`, so either interaction style works one-handed. */
-const ROLLER_ITEM_H = 56;
-const ROLLER_VISIBLE = 5; // odd, so one item sits dead-center
+const ROLLER_ITEM_H = 48;
+const ROLLER_VISIBLE = 3; // odd, so one item sits dead-center; 3 keeps the sheet short enough that the set slots stay visible behind it
 const ROLLER_PAD_ROWS = Math.floor(ROLLER_VISIBLE / 2);
 
 function RepRoller({ value, onChange, min = 0, max = 40 }) {
@@ -141,7 +141,7 @@ function RepStepper({ value, onChange, min = 0, max = 40 }) {
    normal RIR-rated set or an AMRAP-to-failure set, never both. */
 const RIR_OPTIONS = [0, 1, 2, 3, 4];
 
-function RirPicker({ value, isAmrap, onPick, onToggleAmrap }) {
+function RirPicker({ value, isAmrap, onPick, onToggleAmrap, showHint = true }) {
   return html`
     <div class="rirpicker">
       <div class="rirpicker__label">Reps in reserve</div>
@@ -162,10 +162,12 @@ function RirPicker({ value, isAmrap, onPick, onToggleAmrap }) {
           <${I} name="Fire" size=${13} weight="fill" />AMRAP
         </button>
       </div>
-      <p class="rirpicker__hint">
-        AMRAP = one set to complete failure (can't do another rep). Do it as <strong>set 1</strong>, fresh — every
-        1–2 weeks, to recalibrate your targets. Normal sets use RIR the rest of the time.
-      </p>
+      ${showHint
+        ? html`<p class="rirpicker__hint">
+            AMRAP = one set to complete failure. Do it fresh as <strong>set 1</strong> every 1–2 weeks to
+            recalibrate your targets.
+          </p>`
+        : null}
     </div>
   `;
 }
@@ -359,6 +361,7 @@ function SetSheet({ slot, target, existing, amrapDue, desktop, onConfirm, onClos
         <${RirPicker}
           value=${rir}
           isAmrap=${isAmrap}
+          showHint=${slot === 0 || isAmrap}
           onPick=${(v) => {
             setRir(v);
             setIsAmrap(false);
@@ -569,6 +572,12 @@ function App() {
           ? html`
               <div class="calgrid">
                 <div class="calgrid__log logcard">
+                  <${SetSlots}
+                    plan=${plan}
+                    logged=${sets}
+                    activeSlot=${activeSlot}
+                    onSelect=${setActiveSlot}
+                  />
                   ${p?.amrap_due
                     ? html`<div class="callout">
                         <${I} name="Fire" size=${16} weight="fill" /><span
@@ -577,12 +586,6 @@ function App() {
                         >
                       </div>`
                     : null}
-                  <${SetSlots}
-                    plan=${plan}
-                    logged=${sets}
-                    activeSlot=${activeSlot}
-                    onSelect=${setActiveSlot}
-                  />
                   ${showTimer
                     ? html`<${RestTimer}
                         startedAt=${restStart}

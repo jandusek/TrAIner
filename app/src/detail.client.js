@@ -6,6 +6,12 @@ import { html } from "htm/react";
 import * as Ph from "@phosphor-icons/react";
 import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
+
+/* Read a theme token. Must sit above every module-level consumer: the
+   Highcharts theme literal below is evaluated at module scope, so declaring
+   this further down left it in the temporal dead zone. */
+const cssVar = (n) =>
+  getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 // MapLibre GL is loaded as UMD via a <script> in the page shell (see index.ts);
 // grab it off the global rather than importing (its worker breaks under esm.sh).
 const maplibregl = window.maplibregl;
@@ -171,6 +177,7 @@ function useChart(getOptions, deps, opts = {}) {
 }
 
 const BOOT = JSON.parse(document.getElementById("bootstrap").textContent);
+
 const SID = BOOT.sourceId;
 
 const EQUIPMENT = [
@@ -668,9 +675,6 @@ function haversine(a, b) {
 
 /* ── cycling power: zone bars, power+HR chart, aerobic decoupling ──────────── */
 // Athlete's HR zones (see CLAUDE.md — Apple Watch defaults, refined over time).
-const cssVar = (n) =>
-  getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-
 // Zone colours live in the theme (see ui.css --z1..--z5, --pz1..--pz7) so the
 // scales re-derive per theme instead of being pinned to one palette.
 const HR_ZONES = [

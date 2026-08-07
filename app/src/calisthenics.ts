@@ -4,7 +4,14 @@
  * Deterministic — no model call on this path. RIR bands, gap-based re-entry,
  * and the 60–70% floor are exact rules over stored history, same category as
  * pace/SWOLF derivation in parse.ts: computed in code, not left to per-session
- * judgment. The UI logs sets; this recomputes the next target every time.
+ * judgment. The UI logs sets; this recomputes the next targets every time.
+ *
+ * Prescriptions are per-set: the last session's full shape (e.g. 23-23-20-18)
+ * carries forward with each set progressed off its own logged RIR, so every
+ * RIR the athlete enters drives the next session — not just the top set's.
+ * AMRAP is deliberately NOT redundant with RIR: RIR is a cheap per-set
+ * *estimate* of proximity to failure; the periodic AMRAP is a *measured*
+ * ground truth that corrects drift in those estimates (and anchors the floor).
  *
  * See build brief context: pull-ups/push-ups only, self-reported reps + RIR
  * (no wearable can rep-count bodyweight movements or read strength-set effort
@@ -34,7 +41,9 @@ export interface SessionLog {
 export interface Prescription {
   movement: Movement;
   target_sets: number;
-  target_reps: number; // top-set target reps — what the roller defaults to
+  target_reps: number; // top-set target (max of target_sequence) — kept for the roller default / done-card
+  target_sequence: number[]; // per-set rep targets in set order — each set progressed off ITS OWN logged RIR
+  last_sequence: number[] | null; // last session's reps in set order, for "last → today" display; null with no history
   rir_target: string; // human-readable band, e.g. "1-3"
   amrap_due: boolean; // suggest a top-set AMRAP retest this session
   floor_reps: number; // never prescribe below this — 60-70% of best-ever
@@ -75,6 +84,8 @@ export function computePrescription(
       movement,
       target_sets: d.sets,
       target_reps: d.reps,
+      target_sequence: Array(d.sets).fill(d.reps),
+      last_sequence: null,
       rir_target: "1-3",
       amrap_due: true,
       floor_reps: floorFromBest ?? d.reps,
@@ -90,49 +101,53 @@ export function computePrescription(
     ? Math.floor((nowSec - lastAmrapSession.start_time) / DAY_SECONDS)
     : Infinity;
 
-  const lastTop = topSet(last.sets);
-  const targetSets = last.sets.length || DEFAULT_TARGETS[movement].sets;
+  // Set-by-set, in set order: the whole session shape (e.g. 23-23-20-18)
+  // carries forward, not just the top set. Every logged RIR gets used —
+  // each set's next target floats off that set's own self-report.
+  const lastSets = [...last.sets].sort((a, b) => a.set_num - b.set_num);
+  const lastSeq = lastSets.map((s) => s.reps);
 
-  let targetReps: number;
+  let sequence: number[];
   let note: string;
 
   if (gapDays <= GAP_REPEAT_MIN_DAYS - 1) {
-    // Back-to-back or every-other-day cadence: progress off the prior top
-    // set's self-reported RIR — the productive 1-3 RIR band self-calibrates.
-    targetReps = progressFromRir(lastTop.reps, lastTop.rir);
-    note = `Progressed from last top set (${lastTop.reps} reps @ RIR ${lastTop.rir ?? "amrap"}).`;
+    // Back-to-back or every-other-day cadence: progress each set off its own
+    // self-reported RIR — the productive 1-3 RIR band self-calibrates.
+    sequence = lastSets.map((s) => progressFromRir(s.reps, s.rir));
+    note = `Each set progressed off its own logged RIR (last session: ${lastSeq.join("-")}).`;
   } else if (gapDays <= GAP_REPEAT_MAX_DAYS) {
-    targetReps = lastTop.reps;
-    note = `${gapDays}-day gap — repeating last top set before progressing.`;
+    sequence = lastSeq.slice();
+    note = `${gapDays}-day gap — repeating last session before progressing.`;
   } else if (gapDays <= GAP_EASE_MAX_DAYS) {
-    targetReps = Math.max(1, Math.round(lastTop.reps * 0.85));
-    note = `${gapDays}-day gap — easing back in at ~85% of last top set.`;
+    sequence = lastSeq.map((r) => Math.max(1, Math.round(r * 0.85)));
+    note = `${gapDays}-day gap — easing back in at ~85% of last session.`;
   } else {
-    targetReps = Math.max(1, Math.round(lastTop.reps * 0.7));
-    note = `${gapDays}-day layoff — soft restart at ~70% of last top set. AMRAP retest recommended to re-read where you're at.`;
+    sequence = lastSeq.map((r) => Math.max(1, Math.round(r * 0.7)));
+    note = `${gapDays}-day layoff — soft restart at ~70% of last session. AMRAP retest recommended to re-read where you're at.`;
   }
 
   const floor = floorFromBest;
-  if (floor != null && targetReps < floor) {
-    targetReps = floor;
+  const seqTop = Math.max(...sequence);
+  if (floor != null && seqTop < floor) {
+    // Scale the whole session up so its top set lands on the floor,
+    // preserving the set-to-set shape rather than flattening it.
+    sequence = sequence.map((r) => Math.max(1, Math.round((r * floor) / seqTop)));
     note += ` Floor applied (${Math.round(FLOOR_PCT * 100)}% of best-ever ${bestAmrap}).`;
   }
 
   return {
     movement,
-    target_sets: targetSets,
-    target_reps: targetReps,
+    target_sets: sequence.length,
+    target_reps: Math.max(...sequence),
+    target_sequence: sequence,
+    last_sequence: lastSeq,
     rir_target: "1-3",
     amrap_due: daysSinceAmrap >= AMRAP_INTERVAL_DAYS || gapDays >= GAP_SOFT_RESTART_DAYS,
-    floor_reps: floor ?? targetReps,
+    floor_reps: floor ?? Math.max(...sequence),
     best_amrap_reps: bestAmrap,
     gap_days: gapDays,
     note,
   };
-}
-
-function topSet(sets: SetLog[]): SetLog {
-  return sets.reduce((a, b) => (b.reps > a.reps ? b : a), sets[0]);
 }
 
 function maxAmrapReps(history: SessionLog[]): number | null {
@@ -145,9 +160,9 @@ function maxAmrapReps(history: SessionLog[]): number | null {
   return max;
 }
 
-/** The autoregulation core: reps float off the prior top set's self-reported RIR. */
+/** The autoregulation core: a set's next target floats off its own self-reported RIR. */
 function progressFromRir(reps: number, rir: number | null): number {
-  if (rir == null) return reps; // an AMRAP set — hold; amrap_due scheduling drives the real update
+  if (rir == null) return reps; // an AMRAP set (or unreported RIR) — hold; amrap_due scheduling drives the real update
   if (rir <= 0) return reps; // already maxed out that set — don't push blind
   if (rir <= 3) return reps + 1; // the productive 1-3 RIR band
   return reps + 2; // rir > 3: under-challenged, correct with a bigger jump

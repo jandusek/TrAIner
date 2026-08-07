@@ -238,9 +238,31 @@ function RestTimer({ startedAt, targetSec, onAdjustTarget }) {
   `;
 }
 
-function PrescriptionCard({ p }) {
+function PrescriptionCard({ p, doneCount = 0 }) {
+  const seq = p.target_sequence || [];
   return html`
     <div class="rxcard">
+      ${seq.length
+        ? html`
+            <div class="rxcard__seq">
+              <div class="rxcard__k">Today's sets</div>
+              <div class="rxseq">
+                ${seq.map(
+                  (r, i) => html`
+                    <span
+                      key=${i}
+                      class="rxseq__set ${i < doneCount ? "is-done" : i === doneCount ? "is-next" : ""}"
+                      >${r}</span
+                    >
+                  `,
+                )}
+              </div>
+              ${p.last_sequence
+                ? html`<div class="faint rxcard__last">Last session: ${p.last_sequence.join(" · ")}</div>`
+                : null}
+            </div>
+          `
+        : null}
       <div class="rxcard__row">
         <div class="rxcard__stat">
           <div class="rxcard__k">Sets</div>
@@ -301,7 +323,10 @@ function DoneCard({ result, onLogAnother }) {
         <${I} name="CheckCircle" size=${22} weight="fill" />
         <strong>Session saved</strong>
       </div>
-      <p class="faint">Next time: top set ~${p.target_reps} reps @ RIR ${p.rir_target}.</p>
+      <p class="faint">
+        Next time: ${p.target_sequence ? p.target_sequence.join(" · ") : `top set ~${p.target_reps}`} reps @ RIR
+        ${p.rir_target}.
+      </p>
       <div class="setup-actions">
         <button type="button" class="btn btn--accent" onClick=${onLogAnother}>
           <${I} name="Plus" size=${16} weight="bold" />Log another
@@ -345,14 +370,18 @@ function App() {
     loadState();
   }, []);
 
-  // Seed the roller from the current prescription — only before any set has
-  // been logged this session, so it doesn't yank the value out from under a
-  // mid-session adjustment.
+  // Seed the roller from the per-set prescription: set 1's target before
+  // anything is logged, then advance to the next set's target each time a set
+  // is logged (or removed). Only fires on those transitions — a mid-set roller
+  // adjustment isn't yanked, since sets.length doesn't change until "Log set".
   useEffect(() => {
-    if (!data || sets.length) return;
+    if (!data) return;
     const p = data[movement]?.prescription;
-    if (p) setReps(p.target_reps);
-  }, [data, movement]);
+    if (!p) return;
+    const seq = p.target_sequence;
+    if (seq?.length) setReps(seq[Math.min(sets.length, seq.length - 1)]);
+    else if (!sets.length) setReps(p.target_reps);
+  }, [data, movement, sets.length]);
 
   function switchMovement(next) {
     if (next === movement) return;
@@ -432,7 +461,7 @@ function App() {
           </div>`
         : null}
       ${!data && !error ? html`<div class="skeleton" style=${{ height: "9rem" }}></div>` : null}
-      ${p ? html`<${PrescriptionCard} p=${p} />` : null}
+      ${p ? html`<${PrescriptionCard} p=${p} doneCount=${sets.length} />` : null}
 
       ${done
         ? html`<${DoneCard} result=${done} onLogAnother=${() => setDone(null)} />`

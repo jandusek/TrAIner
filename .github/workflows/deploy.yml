@@ -1,0 +1,69 @@
+# Test on every push/PR; deploy both workers to Cloudflare on pushes to main.
+#
+# Deploys need three repository secrets (Settings → Secrets and variables →
+# Actions), mirroring the cloud-session convention in README.md → Setup:
+#   CLOUDFLARE_API_TOKEN    — scoped token ("Edit Cloudflare Workers" template),
+#                             NOT the global API key
+#   APP_WRANGLER_JSONC_B64  — `base64 < app/wrangler.jsonc` of your real config
+#   MCP_WRANGLER_JSONC_B64  — `base64 < mcp/wrangler.jsonc` of your real config
+# The wrangler.jsonc files are gitignored (private hostnames + resource ids),
+# so CI reconstructs them from the secrets instead of finding them in the tree.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+        working-directory: app
+      - run: npm test
+        working-directory: app
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency: deploy-production # never two deploys interleaving
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Reconstruct gitignored wrangler configs
+        run: |
+          echo "${{ secrets.APP_WRANGLER_JSONC_B64 }}" | base64 -d > app/wrangler.jsonc
+          echo "${{ secrets.MCP_WRANGLER_JSONC_B64 }}" | base64 -d > mcp/wrangler.jsonc
+
+      - name: Install
+        run: |
+          npm ci --prefix app
+          npm ci --prefix mcp
+
+      # Migrations first, then code — same order as README.md → Setup step 6,
+      # so a worker never runs against a schema older than it expects.
+      - name: Apply D1 migrations
+        run: npx wrangler d1 migrations apply training --remote
+        working-directory: app
+
+      - name: Deploy app worker
+        run: npx wrangler deploy
+        working-directory: app
+
+      - name: Deploy mcp worker
+        run: npx wrangler deploy
+        working-directory: mcp

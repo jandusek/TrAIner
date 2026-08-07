@@ -117,7 +117,7 @@ function ThemePicker() {
 function HdrGlow({ className }) {
   return html`<video
     class=${className}
-    src=${`/glow/${themeKey()}.webm`}
+    src=${`/glow/${themeKey()}.webm?v=${(window.__GLOW_VER || {})[themeKey()] || ""}`}
     autoPlay
     muted
     loop

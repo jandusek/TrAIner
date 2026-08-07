@@ -1312,8 +1312,12 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 
 /* Sport-glyph gradient follows the live theme. The stops are CSS-driven so a
    theme switch repaints them without touching the SVG in the shell. */
-#sportGrad stop:first-child { stop-color: var(--accent); }
-#sportGrad stop:last-child { stop-color: var(--accent-2); }
+/* Glyphs run the secondary pair (accent-2 -> gold), not the primary one. The
+   logo, pills and CTAs already carry accent -> accent-2; reusing it here made
+   the sport icons repeat the chrome's hues — very obvious once Sonar's accent
+   became purple and every icon turned purple with it. */
+#sportGrad stop:first-child { stop-color: var(--accent-2); }
+#sportGrad stop:last-child { stop-color: var(--gold); }
 
 /* ── Theme picker ─────────────────────────────────────────────────────────── */
 .themegrid {

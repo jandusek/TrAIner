@@ -80,9 +80,16 @@ body {
   margin: 0 auto;
   padding: clamp(1.4rem, 4vw, 3rem) clamp(1rem, 4vw, 1.6rem) 5rem;
 }
-/* Focused single-column screens (calisthenics logger) — phone-width even on
-   a wide viewport, since it's a one-handed, in-workout tool, not a dashboard. */
+/* Focused single-column screens — phone-width even on a wide viewport. */
 .wrap--narrow { max-width: 30rem; }
+/* Calisthenics logger: phone-width single column on mobile (one-handed,
+   in-workout tool), but a real two-column layout on desktop — prescription
+   context left, the live logging flow right. */
+.wrap--cal { max-width: 30rem; }
+@media (min-width: 860px) {
+  .wrap--cal { max-width: 880px; }
+  .calgrid { display: grid; grid-template-columns: 5fr 4fr; gap: 2rem; align-items: start; }
+}
 
 a { color: inherit; text-decoration: none; }
 
@@ -776,17 +783,83 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 }
 
 /* Prescription card — today's autoregulated per-set targets. */
-.rxseq { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.45rem; }
-.rxseq__set {
-  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
-  font-size: 1.15rem; font-weight: 500; color: var(--text);
-  border: 1px solid var(--line); border-radius: 0.55rem;
-  padding: 0.35rem 0.7rem; background: var(--surface);
-}
-.rxseq__set.is-next { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
-.rxseq__set.is-done { opacity: 0.45; text-decoration: line-through; }
-.rxcard__seq { margin-bottom: 0.9rem; }
 .rxcard__last { margin-top: 0.45rem; font-variant-numeric: tabular-nums; }
+
+/* ── set slots — the guided per-set flow ─────────────────────────────────
+   One chip per prescribed set: done (logged, tap to edit), next (the only
+   tappable planned slot), locked (later planned sets), plus an add-extra
+   slot once the plan is complete. */
+.slots { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.slot {
+  display: grid; gap: 0.1rem; justify-items: center;
+  min-width: 4.2rem; padding: 0.5rem 0.6rem 0.45rem;
+  border: 1px solid var(--line); border-radius: 0.7rem;
+  background: var(--surface); color: var(--text);
+  font: inherit; cursor: pointer;
+}
+.slot:disabled { cursor: default; }
+.slot__num { font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+.slot__reps {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  font-size: 1.35rem; font-weight: 500; line-height: 1.2;
+  display: grid; place-items: center;
+}
+.slot__sub { font-size: 0.62rem; color: var(--muted); display: inline-flex; align-items: center; gap: 0.2rem; }
+.slot.is-locked { opacity: 0.45; }
+.slot.is-next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.slot.is-next .slot__reps, .slot.is-next .slot__sub { color: var(--accent); }
+.slot.is-done { background: var(--surface-2); }
+.slot.is-done .slot__reps { color: var(--accent); }
+.slot.is-active { outline: 2px solid var(--accent); outline-offset: 2px; }
+.slot--add .slot__reps { color: var(--muted); }
+
+/* ── set input sheet — bottom sheet on mobile, dialog on desktop ────────── */
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet {
+  width: 100%; max-width: 30rem;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 1rem 1rem 0 0;
+  padding: 1rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
+  display: grid; gap: 1rem;
+  animation: sheet-up 0.18s ease-out;
+}
+@keyframes sheet-up {
+  from { transform: translateY(2rem); opacity: 0.5; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.sheet__head { display: flex; align-items: baseline; gap: 0.6rem; }
+.sheet__head strong { font-family: var(--font-display); font-size: 1.05rem; }
+.sheet__close {
+  margin-left: auto; align-self: center;
+  display: grid; place-items: center;
+  width: 2rem; height: 2rem; border-radius: 50%;
+  border: 1px solid var(--line); background: none; color: var(--muted); cursor: pointer;
+}
+.sheet__close:hover { color: var(--text); }
+@media (min-width: 860px) {
+  .sheet-backdrop { align-items: center; }
+  .sheet { border-radius: 1rem; padding-bottom: 1.2rem; }
+}
+
+/* ── rep stepper (desktop replacement for the flick roller) ─────────────── */
+.repstep { display: flex; align-items: center; justify-content: center; gap: 1.4rem; padding: 0.6rem 0; }
+.repstep__btn {
+  display: grid; place-items: center;
+  width: 3rem; height: 3rem; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--text);
+  cursor: pointer;
+}
+.repstep__btn:hover { border-color: var(--accent); color: var(--accent); }
+.repstep__value {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  font-size: 3rem; font-weight: 500; line-height: 1;
+  display: grid; justify-items: center; gap: 0.15rem; min-width: 5rem;
+}
+.repstep__caption { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
 .rxcard {
   border: 1px solid var(--line);
   border-radius: var(--radius);

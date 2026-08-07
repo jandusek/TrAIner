@@ -1367,3 +1367,30 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .hdrcard:active { transform: scale(0.96); }
 .hdrcard:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-dim); }
 .hdrcard.is-active { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+
+/* ── A/B: baked-colour glow vs white backlight + CSS multiply ──────────────
+   The shipped glow bakes the theme gradient into the video, so every theme
+   needs its own asset. If a flat white PQ video multiplied by a CSS gradient
+   holds its headroom, one asset per nit level covers every theme and the
+   colour tracks the tokens for free. Multiply is the candidate because it
+   scales channels rather than clamping: HDR white x 0.5 red is still above
+   SDR white. Whether Chrome composites the blend in extended range is the
+   open question this comparison answers. */
+.markab { display: flex; align-items: center; gap: 0.55rem; }
+.markab__item { display: grid; justify-items: center; gap: 0.25rem; }
+.markab__label {
+  font-family: var(--font-mono); font-size: 0.53rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--faint);
+}
+.brand__mark--tint { isolation: isolate; }
+.mark-tint {
+  position: absolute; inset: 0; display: none;
+  background: linear-gradient(150deg, var(--accent), var(--accent-2));
+  mix-blend-mode: multiply;
+}
+@supports (dynamic-range-limit: no-limit) {
+  @media (dynamic-range: high) {
+    .brand__mark--tint.is-hdr .mark-tint { display: block; }
+    html[data-hdr="off"] .mark-tint { display: none; }
+  }
+}

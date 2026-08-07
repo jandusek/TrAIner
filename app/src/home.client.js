@@ -27,8 +27,8 @@ const hdrNits = () => {
   const v = document.documentElement.dataset.hdr;
   return v && v !== "off" ? v : "500";
 };
-const glowSrc = () => {
-  const k = `${themeKey()}@${hdrNits()}`;
+const glowSrc = (theme) => {
+  const k = `${theme || themeKey()}@${hdrNits()}`;
   return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
 };
 
@@ -451,9 +451,30 @@ function App() {
     <div class="wrap">
       <header class="topbar">
         <div class="brand">
-          <div class="brand__mark">
-            <${HdrGlow} className="mark-hdr" />
-            <${I} name="Waveform" size=${22} weight="bold" />
+          <div class="markab">
+            <div class="markab__item">
+              <div class="brand__mark">
+                <${HdrGlow} className="mark-hdr" />
+                <${I} name="Waveform" size=${22} weight="bold" />
+              </div>
+              <span class="markab__label">baked</span>
+            </div>
+            <div class="markab__item">
+              <div class="brand__mark brand__mark--tint is-hdr">
+                <video
+                  class="mark-hdr"
+                  src=${glowSrc("white")}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  aria-hidden="true"
+                />
+                <span class="mark-tint"></span>
+                <${I} name="Waveform" size=${22} weight="bold" />
+              </div>
+              <span class="markab__label">tint</span>
+            </div>
           </div>
           <div>
             <div class="brand__name" ref=${nameRef}>

@@ -1280,7 +1280,11 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
    Everything is gated behind an actual HDR display: PQ content tone-maps to a
    flat grey on SDR, which would strip the brand colour. On SDR none of this
    renders and the ordinary CSS gradients stand. */
-.brand__mark { position: relative; overflow: hidden; }
+/* No overflow: hidden here. A rounded clipping container forces the subtree
+   into a composited buffer that tone-maps to SDR — it was the only glow host
+   with one, and the only glow that stopped being HDR. The layers round
+   themselves via border-radius: inherit instead. */
+.brand__mark { position: relative; }
 .brand__name { position: relative; }
 .filterchip.is-active { position: relative; isolation: isolate; }
 .btn--accent { position: relative; isolation: isolate; }
@@ -1299,15 +1303,15 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .mark-hdr, .chip-hdr, .name-hdr, .btn-hdr {
   position: absolute; inset: 0; display: none; pointer-events: none;
 }
-.glow {
+.hdrglow {
   position: absolute; inset: 0;
-  border-radius: inherit; overflow: hidden; isolation: isolate;
+  border-radius: inherit; isolation: isolate;
 }
-.glow-vid {
+.hdrglow-vid {
   width: 100%; height: 100%; object-fit: cover; display: block;
   border-radius: inherit;
 }
-.glow-tint {
+.hdrglow-tint {
   position: absolute; inset: 0; border-radius: inherit;
   background: linear-gradient(
     150deg,
@@ -1375,6 +1379,10 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 
 .hdrgrid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
 .hdrcard {
+  /* Each button previews its own level rather than the selected one, so the
+     row is a live ladder: pick the brightest that still looks like light
+     rather than a blown highlight on your display. */
+  position: relative; isolation: isolate;
   font: inherit; font-family: var(--font-mono); font-size: 0.8rem;
   padding: 0.5rem 0.85rem; cursor: pointer;
   color: var(--muted); background: var(--surface-2);
@@ -1390,5 +1398,13 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
   @media (dynamic-range: high) {
     .brand__mark--tint.is-hdr .mark-tint { display: block; }
     html[data-hdr="off"] .mark-tint { display: none; }
+  }
+}
+
+@supports (dynamic-range-limit: no-limit) {
+  @media (dynamic-range: high) {
+    /* the labels sit on their own glow, so they need the on-accent ink */
+    .hdrcard { color: var(--accent-ink); border-color: transparent; }
+    html[data-hdr="off"] .hdrcard { color: var(--muted); }
   }
 }

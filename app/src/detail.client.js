@@ -363,23 +363,23 @@ const hdrNits = () => {
 };
 /* One asset per nit level, shared by every theme — the colour comes from
    .glow-tint in CSS, not from the video. */
-const glowSrc = () => {
-  const k = `white@${hdrNits()}`;
+const glowSrc = (nits) => {
+  const k = `white@${nits || hdrNits()}`;
   return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
 };
 
-function HdrGlow({ className }) {
-  return html`<span class=${`glow ${className}`}>
+function HdrGlow({ className, nits }) {
+  return html`<span class=${`hdrglow ${className}`}>
     <video
-      class="glow-vid"
-      src=${glowSrc()}
+      class="hdrglow-vid"
+      src=${glowSrc(nits)}
       autoPlay
       muted
       loop
       playsInline
       aria-hidden="true"
     />
-    <span class="glow-tint"></span>
+    <span class="hdrglow-tint"></span>
   </span>`;
 }
 

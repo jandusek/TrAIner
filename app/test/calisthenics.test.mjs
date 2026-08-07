@@ -116,10 +116,25 @@ test("push-ups use their own default baseline and target sets follow the last se
 
 // ── per-set target sequence (every logged RIR drives its own set) ──────────
 
-test("bootstrap prescription carries a flat per-set sequence", () => {
+test("bootstrap prescription carries a tapered per-set sequence", () => {
   const p = computePrescription("pullup", [], NOW);
-  assert.deepEqual(p.target_sequence, [5, 5, 5, 5, 5]);
+  assert.deepEqual(p.target_sequence, [5, 5, 5, 4, 4]);
   assert.equal(p.last_sequence, null);
+});
+
+test("a flat last session is prescribed as a top-loaded taper, not another flat session", () => {
+  // 4x23 all at RIR 0 (hold): taper caps sets 3-4 at ~92%/84% of the top.
+  const history = [session(1, [set(1, 23, 0), set(2, 23, 0), set(3, 23, 0), set(4, 23, 0)])];
+  const p = computePrescription("pushup", history, NOW);
+  assert.deepEqual(p.target_sequence, [23, 23, 21, 19]);
+});
+
+test("a history that tapers steeper than the curve keeps its own shape", () => {
+  // RIR-progressed base is [24, 24, 15, 11] — sets 3-4 sit far below the
+  // taper caps (22, 20), so the athlete's own steeper drop-off is preserved.
+  const history = [session(1, [set(1, 23, 1), set(2, 23, 1), set(3, 15, 0), set(4, 11, 0)])];
+  const p = computePrescription("pushup", history, NOW);
+  assert.deepEqual(p.target_sequence, [24, 24, 15, 11]);
 });
 
 test("each set progresses off its own RIR, preserving the session shape", () => {

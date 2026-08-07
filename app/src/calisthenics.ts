@@ -59,6 +59,15 @@ const GAP_REPEAT_MAX_DAYS = 4; // 3-4 days: repeat last session once before prog
 const GAP_EASE_MAX_DAYS = 13; // 5-13 days: ease re-entry
 const GAP_SOFT_RESTART_DAYS = 14; // >=14 days: soft restart + force an AMRAP retest
 
+// Prescribed taper: hit the top target while fresh, then back off as fatigue
+// accumulates — the classic top-loaded session shape (e.g. 23-23-21-19)
+// rather than grinding the same number on every set. Applied as a CAP on the
+// RIR-progressed per-set targets: it pulls a flat sequence down into a taper,
+// but never pushes a set above what its own RIR progression earned, so a
+// history that already tapers steeper than this curve keeps its own shape.
+const TAPER_FULL_SETS = 2; // first N sets get the full top target
+const TAPER_STEP = 0.08; // each set after that caps ~8% lower than the last
+
 const DEFAULT_TARGETS: Record<Movement, { sets: number; reps: number }> = {
   // Recon Ron / Hundred Push-ups starting-level heuristics, used only as a
   // bootstrap before any real history exists — see CLAUDE.md build brief.
@@ -84,7 +93,7 @@ export function computePrescription(
       movement,
       target_sets: d.sets,
       target_reps: d.reps,
-      target_sequence: Array(d.sets).fill(d.reps),
+      target_sequence: applyTaper(Array(d.sets).fill(d.reps)),
       last_sequence: null,
       rir_target: "1-3",
       amrap_due: true,
@@ -126,6 +135,8 @@ export function computePrescription(
     note = `${gapDays}-day layoff — soft restart at ~70% of last session. AMRAP retest recommended to re-read where you're at.`;
   }
 
+  sequence = applyTaper(sequence);
+
   const floor = floorFromBest;
   const seqTop = Math.max(...sequence);
   if (floor != null && seqTop < floor) {
@@ -148,6 +159,16 @@ export function computePrescription(
     gap_days: gapDays,
     note,
   };
+}
+
+/** Cap each set at the top-loaded taper curve (see TAPER_* above). */
+function applyTaper(sequence: number[]): number[] {
+  const top = Math.max(...sequence);
+  return sequence.map((r, i) => {
+    if (i < TAPER_FULL_SETS) return r;
+    const cap = Math.round(top * (1 - TAPER_STEP * (i - TAPER_FULL_SETS + 1)));
+    return Math.max(1, Math.min(r, cap));
+  });
 }
 
 function maxAmrapReps(history: SessionLog[]): number | null {

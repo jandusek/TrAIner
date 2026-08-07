@@ -1403,10 +1403,13 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 
 @supports (dynamic-range-limit: no-limit) {
   @media (dynamic-range: high) {
-    /* Labels sit on their own glow, so they need the on-accent ink — except
-       Off, which has no glow behind it and would put near-black text on the
-       dark surface. It keeps the ordinary muted treatment. */
-    .hdrcard:not(.hdrcard--off) { color: var(--accent-ink); border-color: transparent; }
+    /* Only the selected level is lit, and only it takes the on-accent ink.
+       Lighting all four meant a click had to repoint every preview, which
+       dragged them all to the chosen level anyway — and Off, having no glow,
+       ended up with near-black text on a dark surface. */
+    .hdrcard.is-active:not(.hdrcard--off) {
+      color: var(--accent-ink); border-color: transparent;
+    }
     html[data-hdr="off"] .hdrcard { color: var(--muted); }
   }
 }

@@ -135,9 +135,9 @@ function HdrPicker() {
                 onClick=${() => pick(v)}
                 aria-pressed=${nits === v}
               >
-                ${v === "off"
-                  ? null
-                  : html`<${HdrGlow} className="btn-hdr" nits=${v} />`}
+                ${v !== "off" && nits === v
+                  ? html`<${HdrGlow} className="btn-hdr" nits=${v} />`
+                  : null}
                 ${v === "off" ? "Off" : `${v} nits`}
               </button>
             `,

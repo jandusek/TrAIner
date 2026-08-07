@@ -130,27 +130,27 @@
   --accent-2: #5c60aa;
   --accent-ink: #260501;
   --accent-dim: rgba(227, 176, 163, 0.14);
-  --hot: #36d4cf;
-  --hot-dim: rgba(54, 212, 207, 0.13);
+  --hot: #95a0ab;
+  --hot-dim: rgba(149, 160, 171, 0.13);
   --gold: #fdddcb;
   --z1: #5c60aa;
-  --z2: #9d89aa;
-  --z3: #e3b0a3;
-  --z4: #a6c4b9;
-  --z5: #36d4cf;
+  --z2: #7781ac;
+  --z3: #95a0ab;
+  --z4: #bda9a8;
+  --z5: #e3b0a3;
   --pz1: #5c60aa;
-  --pz2: #877cab;
-  --pz3: #b497a9;
-  --pz4: #e3b0a3;
-  --pz5: #bdbeb2;
-  --pz6: #8ccac1;
-  --pz7: #36d4cf;
+  --pz2: #6e76ab;
+  --pz3: #818bac;
+  --pz4: #95a0ab;
+  --pz5: #b0a6a9;
+  --pz6: #caaba6;
+  --pz7: #e3b0a3;
 }
 @supports (color: color(display-p3 1 1 1)) {
   [data-theme="dusk"] {
     --accent: color(display-p3 0.7538 0.4295 0.3510);
     --accent-2: color(display-p3 0.1034 0.1077 0.4445);
-    --hot: color(display-p3 0.0760 0.6671 0.6450);
+    --hot: color(display-p3 0.3022 0.3510 0.4147);
     --gold: color(display-p3 0.9721 0.7210 0.5792);
   }
 }

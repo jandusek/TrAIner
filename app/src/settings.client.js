@@ -54,7 +54,7 @@ const THEMES = {
     "swatches": [
       "#e3b0a3",
       "#5c60aa",
-      "#36d4cf",
+      "#95a0ab",
       "#fdddcb"
     ]
   }

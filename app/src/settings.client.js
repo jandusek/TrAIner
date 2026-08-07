@@ -129,7 +129,9 @@ function HdrPicker() {
               <button
                 key=${v}
                 type="button"
-                class=${`hdrcard ${nits === v ? "is-active" : ""}`}
+                class=${`hdrcard ${v === "off" ? "hdrcard--off" : ""} ${
+                  nits === v ? "is-active" : ""
+                }`}
                 onClick=${() => pick(v)}
                 aria-pressed=${nits === v}
               >

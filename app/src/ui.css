@@ -1403,8 +1403,10 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 
 @supports (dynamic-range-limit: no-limit) {
   @media (dynamic-range: high) {
-    /* the labels sit on their own glow, so they need the on-accent ink */
-    .hdrcard { color: var(--accent-ink); border-color: transparent; }
+    /* Labels sit on their own glow, so they need the on-accent ink — except
+       Off, which has no glow behind it and would put near-black text on the
+       dark surface. It keeps the ordinary muted treatment. */
+    .hdrcard:not(.hdrcard--off) { color: var(--accent-ink); border-color: transparent; }
     html[data-hdr="off"] .hdrcard { color: var(--muted); }
   }
 }

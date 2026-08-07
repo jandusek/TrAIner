@@ -326,6 +326,7 @@ function AddFab() {
       onClick=${() => setOpen((o) => !o)}
       aria-label=${open ? "Close" : "Add a workout"}
     >
+      <${HdrGlow} className="btn-hdr" />
       <${I} name="Plus" size=${24} weight="bold" />
     </button>
   `;

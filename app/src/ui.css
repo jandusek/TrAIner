@@ -1176,7 +1176,7 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .brand__mark { position: relative; overflow: hidden; }
 .brand__name { position: relative; }
 .filterchip.is-active { position: relative; isolation: isolate; }
-.btn--accent { position: relative; isolation: isolate; }
+.btn--accent, .fab { position: relative; isolation: isolate; }
 
 .mark-hdr, .chip-hdr, .name-hdr, .btn-hdr {
   position: absolute; inset: 0; display: none; pointer-events: none;

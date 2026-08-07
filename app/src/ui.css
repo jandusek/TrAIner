@@ -125,33 +125,33 @@
     --gold: color(display-p3 0.9746 0.7596 0.5847);
   }
 }
-[data-theme="dusk"] {
-  --accent: #e3b0a3;
-  --accent-2: #5c60aa;
-  --accent-ink: #260501;
-  --accent-dim: rgba(227, 176, 163, 0.14);
-  --hot: #bd578f;
-  --hot-dim: rgba(189, 87, 143, 0.13);
-  --gold: #fdddcb;
-  --z1: #5c60aa;
-  --z2: #8f5f9d;
-  --z3: #bd578f;
-  --z4: #d1859a;
-  --z5: #e3b0a3;
-  --pz1: #5c60aa;
-  --pz2: #7f60a2;
-  --pz3: #9f5d99;
-  --pz4: #bd578f;
-  --pz5: #cb7696;
-  --pz6: #d7939d;
-  --pz7: #e3b0a3;
+[data-theme="flare"] {
+  --accent: #ed2a8b;
+  --accent-2: #f9ac3d;
+  --accent-ink: #250412;
+  --accent-dim: rgba(237, 42, 139, 0.14);
+  --hot: #f56333;
+  --hot-dim: rgba(245, 99, 51, 0.13);
+  --gold: #fddec6;
+  --z1: #ed2a8b;
+  --z2: #f14d68;
+  --z3: #f56333;
+  --z4: #f88938;
+  --z5: #f9ac3d;
+  --pz1: #ed2a8b;
+  --pz2: #f04474;
+  --pz3: #f2555a;
+  --pz4: #f56333;
+  --pz5: #f77d36;
+  --pz6: #f9953a;
+  --pz7: #f9ac3d;
 }
 @supports (color: color(display-p3 1 1 1)) {
-  [data-theme="dusk"] {
-    --accent: color(display-p3 0.7538 0.4295 0.3510);
-    --accent-2: color(display-p3 0.1034 0.1077 0.4445);
-    --hot: color(display-p3 0.4876 0.0842 0.2771);
-    --gold: color(display-p3 0.9721 0.7210 0.5792);
+  [data-theme="flare"] {
+    --accent: color(display-p3 0.8134 0.0021 0.2512);
+    --accent-2: color(display-p3 0.9343 0.4045 0.0241);
+    --hot: color(display-p3 0.8886 0.1074 0.0162);
+    --gold: color(display-p3 0.9734 0.7291 0.5443);
   }
 }
 

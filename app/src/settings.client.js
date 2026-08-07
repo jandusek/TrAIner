@@ -49,13 +49,13 @@ const THEMES = {
       "#fde2cc"
     ]
   },
-  "dusk": {
-    "label": "Dusk",
+  "flare": {
+    "label": "Flare",
     "swatches": [
-      "#e3b0a3",
-      "#5c60aa",
-      "#bd578f",
-      "#fdddcb"
+      "#ed2a8b",
+      "#f9ac3d",
+      "#f56333",
+      "#fddec6"
     ]
   }
 };

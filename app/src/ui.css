@@ -130,27 +130,27 @@
   --accent-2: #5c60aa;
   --accent-ink: #260501;
   --accent-dim: rgba(227, 176, 163, 0.14);
-  --hot: #95a0ab;
-  --hot-dim: rgba(149, 160, 171, 0.13);
+  --hot: #bd578f;
+  --hot-dim: rgba(189, 87, 143, 0.13);
   --gold: #fdddcb;
   --z1: #5c60aa;
-  --z2: #7781ac;
-  --z3: #95a0ab;
-  --z4: #bda9a8;
+  --z2: #8f5f9d;
+  --z3: #bd578f;
+  --z4: #d1859a;
   --z5: #e3b0a3;
   --pz1: #5c60aa;
-  --pz2: #6e76ab;
-  --pz3: #818bac;
-  --pz4: #95a0ab;
-  --pz5: #b0a6a9;
-  --pz6: #caaba6;
+  --pz2: #7f60a2;
+  --pz3: #9f5d99;
+  --pz4: #bd578f;
+  --pz5: #cb7696;
+  --pz6: #d7939d;
   --pz7: #e3b0a3;
 }
 @supports (color: color(display-p3 1 1 1)) {
   [data-theme="dusk"] {
     --accent: color(display-p3 0.7538 0.4295 0.3510);
     --accent-2: color(display-p3 0.1034 0.1077 0.4445);
-    --hot: color(display-p3 0.3022 0.3510 0.4147);
+    --hot: color(display-p3 0.4876 0.0842 0.2771);
     --gold: color(display-p3 0.9721 0.7210 0.5792);
   }
 }

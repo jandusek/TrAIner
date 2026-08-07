@@ -1237,7 +1237,7 @@ ${headExtra}
 <div class="glow" aria-hidden="true"></div>
 <div id="root"></div>
 <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
-<linearGradient id="sportGrad" gradientUnits="userSpaceOnUse" x1="24" y1="16" x2="232" y2="240">
+<linearGradient id="sportGrad" gradientUnits="userSpaceOnUse" x1="40" y1="32" x2="216" y2="224">
 <stop offset="0" stop-color="#afffa9"/><stop offset="1" stop-color="#3fdcc9"/>
 </linearGradient></defs></svg>
 <script id="bootstrap" type="application/json">${bootJson}</script>

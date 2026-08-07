@@ -1392,7 +1392,13 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .hdrcard:hover { color: var(--text); border-color: var(--line-2); }
 .hdrcard:active { transform: scale(0.96); }
 .hdrcard:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-dim); }
-.hdrcard.is-active { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+/* Same gradient as the pills, FAB and CTAs — Off differs from the other
+   levels only in having no glow over it, not in being a different control. */
+.hdrcard.is-active {
+  color: var(--accent-ink);
+  background: linear-gradient(150deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+}
 
 @supports (dynamic-range-limit: no-limit) {
   @media (dynamic-range: high) {
@@ -1410,6 +1416,6 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
     .hdrcard.is-active:not(.hdrcard--off) {
       color: var(--accent-ink); border-color: transparent;
     }
-    html[data-hdr="off"] .hdrcard { color: var(--muted); }
+    html[data-hdr="off"] .hdrcard:not(.is-active) { color: var(--muted); }
   }
 }

@@ -11,6 +11,16 @@ const BOOT = JSON.parse(document.getElementById("bootstrap").textContent);
 /* HDR glow — see home.client.js. Applied only to the profile Save, which is
    the page's primary action. */
 const themeKey = () => document.documentElement.dataset.theme || "illuminate";
+/* Peak luminance is user-set; "off" is handled in CSS so the element stays
+   mounted and toggling costs nothing. */
+const hdrNits = () => {
+  const v = document.documentElement.dataset.hdr;
+  return v && v !== "off" ? v : "500";
+};
+const glowSrc = () => {
+  const k = `${themeKey()}@${hdrNits()}`;
+  return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
+};
 
 
 /* ── Theme picker ──────────────────────────────────────────────────────────
@@ -65,6 +75,72 @@ function currentTheme() {
   return document.documentElement.dataset.theme || "illuminate";
 }
 
+
+/* Repoint every mounted glow. Their src was resolved when their component last
+   rendered, and those components are siblings of the pickers here, so setState
+   never reaches them — without this they keep the previous theme or level
+   until a reload. */
+function repointGlows(theme, nits) {
+  const k = `${theme}@${nits}`;
+  const v = (window.__GLOW_VER || {})[k] || "";
+  document
+    .querySelectorAll(".mark-hdr, .chip-hdr, .btn-hdr, .name-hdr video, .glyph-hdr video")
+    .forEach((el) => {
+      el.src = `/glow/${encodeURIComponent(k)}.webm?v=${v}`;
+      el.play().catch(() => {});
+    });
+}
+
+const HDR_KEY = "trainer.hdr";
+
+function HdrPicker() {
+  const levels = window.__HDR_LEVELS || [300, 500, 700, 1200];
+  const [nits, setNits] = useState(
+    () => document.documentElement.dataset.hdr || "500",
+  );
+  function pick(v) {
+    document.documentElement.dataset.hdr = v;
+    try {
+      localStorage.setItem(HDR_KEY, v);
+    } catch (e) {
+      /* private mode — applies for this session only */
+    }
+    if (v !== "off") repointGlows(currentTheme(), v);
+    setNits(v);
+  }
+  const opts = [...levels.map(String), "off"];
+  return html`
+    <div class="panel open">
+      <div class="panel__summary">
+        <${I} name="Sun" size=${18} weight="duotone" />Glow brightness
+      </div>
+      <div class="panel__body">
+        <p>
+          Peak luminance of the logo, pills and buttons, in nits. Only visible on
+          an HDR display — SDR screens show the flat gradient whatever you pick.
+          Higher is not automatically better: it depends on your display's
+          headroom, and past it everything simply clips to maximum.
+        </p>
+        <div class="hdrgrid">
+          ${opts.map(
+            (v) => html`
+              <button
+                key=${v}
+                type="button"
+                class=${`hdrcard ${nits === v ? "is-active" : ""}`}
+                onClick=${() => pick(v)}
+                aria-pressed=${nits === v}
+              >
+                ${v === "off" ? "Off" : `${v} nits`}
+              </button>
+            `,
+          )}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function ThemePicker() {
   const [theme, setTheme] = useState(currentTheme());
   function pick(key) {
@@ -79,13 +155,7 @@ function ThemePicker() {
        was resolved when its component last rendered. Those components are
        siblings of this one, so setTheme does not reach them and they would
        keep the old theme's video until a reload. Repoint them directly. */
-    const v = (window.__GLOW_VER || {})[key] || "";
-    document
-      .querySelectorAll(".mark-hdr, .chip-hdr, .btn-hdr, .name-hdr video, .glyph-hdr video")
-      .forEach((el) => {
-        el.src = `/glow/${key}.webm?v=${v}`;
-        el.play().catch(() => {});
-      });
+    repointGlows(key, hdrNits());
     setTheme(key);
   }
   return html`
@@ -128,7 +198,7 @@ function ThemePicker() {
 function HdrGlow({ className }) {
   return html`<video
     class=${className}
-    src=${`/glow/${themeKey()}.webm?v=${(window.__GLOW_VER || {})[themeKey()] || ""}`}
+    src=${glowSrc()}
     autoPlay
     muted
     loop
@@ -386,6 +456,7 @@ function App() {
 
       <div class="section-label">Appearance</div>
       <${ThemePicker} />
+      <${HdrPicker} />
 
       <div class="section-label">Data sources</div>
       <${Webhook} />

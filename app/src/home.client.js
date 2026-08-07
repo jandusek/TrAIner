@@ -21,11 +21,21 @@ const BOOT = JSON.parse(document.getElementById("bootstrap").textContent);
    ui.css gates all of it behind `@media (dynamic-range: high)` — on an SDR
    display the videos never render and the CSS gradients stand unchanged. */
 const themeKey = () => document.documentElement.dataset.theme || "illuminate";
+/* Peak luminance is user-set; "off" is handled in CSS so the element stays
+   mounted and toggling costs nothing. */
+const hdrNits = () => {
+  const v = document.documentElement.dataset.hdr;
+  return v && v !== "off" ? v : "500";
+};
+const glowSrc = () => {
+  const k = `${themeKey()}@${hdrNits()}`;
+  return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
+};
 
 function HdrGlow({ className }) {
   return html`<video
     class=${className}
-    src=${`/glow/${themeKey()}.webm?v=${(window.__GLOW_VER || {})[themeKey()] || ""}`}
+    src=${glowSrc()}
     autoPlay
     muted
     loop

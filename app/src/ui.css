@@ -1304,6 +1304,14 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 @supports (dynamic-range-limit: no-limit) {
   @media (dynamic-range: high) {
     .mark-hdr, .chip-hdr, .name-hdr, .btn-hdr { display: block; dynamic-range-limit: no-limit; }
+    /* Peak luminance is a preference (Settings -> Appearance): displays differ
+       a lot in headroom, and "off" has to be available for anyone who finds
+       the glow distracting. Off is handled here rather than by withholding the
+       src, so the elements stay in the DOM and the toggle is instant. */
+    html[data-hdr="off"] .mark-hdr,
+    html[data-hdr="off"] .chip-hdr,
+    html[data-hdr="off"] .name-hdr,
+    html[data-hdr="off"] .btn-hdr { display: none; }
     /* only the "AI" is hidden — nothing light sits under it, so its
        anti-aliased mask edges have nothing to halo against */
     .brand__ai.is-hdr { color: transparent; }
@@ -1346,3 +1354,16 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 }
 .themecard__swatches i:last-child { margin-right: 0; }
 .themecard__name { font-weight: 600; letter-spacing: 0.01em; }
+
+.hdrgrid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+.hdrcard {
+  font: inherit; font-family: var(--font-mono); font-size: 0.8rem;
+  padding: 0.5rem 0.85rem; cursor: pointer;
+  color: var(--muted); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 999px;
+  transition: color 0.15s, border-color 0.15s, transform 0.12s var(--ease-pop);
+}
+.hdrcard:hover { color: var(--text); border-color: var(--line-2); }
+.hdrcard:active { transform: scale(0.96); }
+.hdrcard:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-dim); }
+.hdrcard.is-active { color: var(--accent-ink); background: var(--accent); border-color: transparent; }

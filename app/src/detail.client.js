@@ -355,11 +355,21 @@ function evalAuthorLabel(generatedBy) {
    the accent gradient get one: they are the single primary action on the page,
    so this stays one video each rather than one per row. */
 const themeKey = () => document.documentElement.dataset.theme || "illuminate";
+/* Peak luminance is user-set; "off" is handled in CSS so the element stays
+   mounted and toggling costs nothing. */
+const hdrNits = () => {
+  const v = document.documentElement.dataset.hdr;
+  return v && v !== "off" ? v : "500";
+};
+const glowSrc = () => {
+  const k = `${themeKey()}@${hdrNits()}`;
+  return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
+};
 
 function HdrGlow({ className }) {
   return html`<video
     class=${className}
-    src=${`/glow/${themeKey()}.webm?v=${(window.__GLOW_VER || {})[themeKey()] || ""}`}
+    src=${glowSrc()}
     autoPlay
     muted
     loop

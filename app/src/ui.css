@@ -1385,7 +1385,18 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .brand__mark--tint { isolation: isolate; }
 .mark-tint {
   position: absolute; inset: 0; display: none;
-  background: linear-gradient(150deg, var(--accent), var(--accent-2));
+  /* In HDR the two paths are the same product: baked encodes accent x N nits
+     into the pixels, tint multiplies white x N nits by accent. They diverge
+     only in how each tone-maps to SDR — baked desaturates on the way down,
+     tint keeps full sRGB saturation because its colour is applied after the
+     white video has tone-mapped. Mixing a little white into the tint pulls it
+     back toward baked's rendering; it also lifts the result slightly, since
+     multiplying by a lighter colour subtracts less. */
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--accent) 86%, white),
+    color-mix(in srgb, var(--accent-2) 86%, white)
+  );
   mix-blend-mode: multiply;
 }
 @supports (dynamic-range-limit: no-limit) {

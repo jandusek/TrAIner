@@ -1,10 +1,78 @@
 // Home page — workout logbook. React (no build) via htm + esm.sh; Phosphor icons.
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { html } from "htm/react";
 import * as Ph from "@phosphor-icons/react";
 
 const BOOT = JSON.parse(document.getElementById("bootstrap").textContent);
+
+
+/* ── HDR chrome ────────────────────────────────────────────────────────────
+   CSS colour is gamut-mapped into SDR — it cannot exceed paper white. Only
+   real HDR *content* can, and of the content types only video actually gets
+   headroom (HDR PNGs were tested on-device and do not). So the brand gradient
+   is shipped as a 717-byte Rec.2020 PQ video, peaking at 500 nits, and the
+   elements that glow each mount their own copy.
+
+   Rendered as JSX rather than injected into the DOM: React owns these
+   subtrees, and a node appended by hand would be discarded on the next
+   re-render (the active pill re-renders on every filter click).
+
+   ui.css gates all of it behind `@media (dynamic-range: high)` — on an SDR
+   display the videos never render and the CSS gradients stand unchanged. */
+const HDR_BRAND = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKdEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEvTbuMU6uEHFO7a1OsggKH7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjEuMS4xMDBXQYxMYXZmNjEuMS4xMDBEiYhAj0AAAAAAABZUrmvUrgEAAAAAAABL14EBc8WIP97QIMNc/a+cgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QHc1lA4JywgUC6gUCagQJVsJBVuoEQVbGBCVW7gQlVuYECElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYxLjEuMTAwc3PZY8CLY8WIP97QIMNc/a9nyKRFo4dFTkNPREVSRIeXTGF2YzYxLjMuMTAwIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z1QM/ngQCjt4EAAICSSYNCWAH4AfsEHBIODCkAABhgAAAlI///nKB4HN+GUJIpob3//1sfqqO////tORflwACjk4EAfQCWAECSnBBJwAADIAAAVHCjk4EA+gCWAECSnBBLIAADIAAAVHCjk4EBdwCWAECSnBBKQAADIAAAVHCjk4EB9ACWAECSnBBJQAADIAAAVHCjk4ECcQCWAECSnBBIIAADIAAAVHCjk4EC7gCWAECSnBBHoAADIAAAVHCjk4EDawCWAECSnBBHAAADIAAAVHAcU7trkbuPs4EAt4r3gQHxggGy8IED";
+
+function HdrGlow({ className }) {
+  return html`<video
+    class=${className}
+    src=${HDR_BRAND}
+    autoPlay
+    muted
+    loop
+    playsInline
+    aria-hidden="true"
+  />`;
+}
+
+/* The "AI" glows by masking the same video to a text shape. The mask is drawn
+   on a canvas using the element's own resolved font — an SVG <text> mask would
+   render in a fallback face, because an SVG mask cannot see the page's
+   webfonts, and would sit misaligned over the real glyphs. */
+function useAiMask(nameRef, aiRef, layerRef) {
+  useEffect(() => {
+    function build() {
+      const name = nameRef.current, ai = aiRef.current, layer = layerRef.current;
+      if (!name || !ai || !layer) return;
+      const cs = getComputedStyle(name);
+      const w = name.offsetWidth, h = name.offsetHeight;
+      if (!w || !h) return;
+      const S = Math.min(3, (window.devicePixelRatio || 1) * 2);
+      const cv = document.createElement("canvas");
+      cv.width = Math.ceil(w * S); cv.height = Math.ceil(h * S);
+      const c = cv.getContext("2d");
+      c.scale(S, S);
+      c.font = cs.font || `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      if ("letterSpacing" in c) c.letterSpacing = cs.letterSpacing;
+      c.textBaseline = "alphabetic";
+      c.fillStyle = "#fff";
+      // baseline placed the way a browser centres a line box
+      const m = c.measureText("Hg");
+      const y = (h - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
+              + m.fontBoundingBoxAscent;
+      c.fillText("AI", c.measureText("Tr").width, y);
+      const url = `url("${cv.toDataURL("image/png")}")`;
+      layer.style.webkitMaskImage = url; layer.style.maskImage = url;
+      layer.style.webkitMaskRepeat = layer.style.maskRepeat = "no-repeat";
+      layer.style.webkitMaskSize = layer.style.maskSize = "100% 100%";
+      ai.classList.add("is-hdr");
+    }
+    build();
+    addEventListener("resize", build);
+    // a webfont landing after first paint would leave a stale mask
+    if (document.fonts?.ready) document.fonts.ready.then(build);
+    return () => removeEventListener("resize", build);
+  }, []);
+}
 
 /* ── icon helpers ─────────────────────────────────────────────────────────── */
 // Resolve Phosphor icons by name with a graceful fallback so a wrong name never
@@ -187,6 +255,9 @@ function SportFilter({ sports, total, active, onSelect }) {
             class=${`filterchip ${active === it.sport ? "is-active" : ""}`}
             onClick=${() => onSelect(it.sport)}
           >
+            ${active === it.sport
+              ? html`<${HdrGlow} className="chip-hdr" />`
+              : null}
             <${I} name=${it.icon} size=${14} weight="bold" />${it.label}
             <span class="filterchip__count">${it.count}</span>
           </button>
@@ -333,15 +404,28 @@ function App() {
 
   const allCount = state.sports.reduce((sum, s) => sum + s.c, 0);
 
+  // HDR wordmark: the "AI" is lit by masking the brand video to a canvas-drawn
+  // text shape (see useAiMask). No-op on SDR displays — ui.css gates the layer.
+  const nameRef = useRef(null);
+  const aiRef = useRef(null);
+  const aiLayerRef = useRef(null);
+  useAiMask(nameRef, aiRef, aiLayerRef);
+
   return html`
     <div class="wrap">
       <header class="topbar">
         <div class="brand">
           <div class="brand__mark">
+            <${HdrGlow} className="mark-hdr" />
             <${I} name="Waveform" size=${22} weight="bold" />
           </div>
           <div>
-            <div class="brand__name">Tr<span class="brand__ai">AI</span>ner</div>
+            <div class="brand__name" ref=${nameRef}>
+              Tr<span class="brand__ai" ref=${aiRef}>AI</span>ner
+              <span class="name-hdr" ref=${aiLayerRef}>
+                <${HdrGlow} className="" />
+              </span>
+            </div>
             <div class="brand__sub">Logbook</div>
           </div>
         </div>

@@ -6,26 +6,29 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --bg: #070c0f;
-  --surface: #0e1519;
-  --surface-2: #111c21;
-  --elevated: #16242a;
+  --bg: #020202;
+  --surface: #0a0a0a;
+  --surface-2: #101010;
+  --elevated: #171717;
 
-  --line: rgba(126, 176, 168, 0.12);
-  --line-2: rgba(126, 176, 168, 0.24);
+  --line: rgba(152, 171, 151, 0.12);
+  --line-2: rgba(152, 171, 151, 0.24);
 
-  --text: #e9f2ef;
-  --muted: #91a8a2;
-  --faint: #62756f;
+  --text: #eaf1e9;
+  --muted: #97a296;
+  --faint: #626c62;
 
-  --accent: #2fe0c0;
-  --accent-2: #14b89c;
-  --accent-ink: #04211b;
-  --accent-dim: rgba(47, 224, 192, 0.14);
+  --accent: #afffa9;
+  --accent-2: #3fdcc9;
+  --accent-ink: #031703;
+  --accent-dim: rgba(175, 255, 169, 0.14);
 
-  --hot: #ff7d68;
-  --hot-dim: rgba(255, 125, 104, 0.13);
-  --gold: #ffce73;
+  /* No warm colour exists in this palette, so --hot carries the periwinkle
+     rather than a coral. It still reads as "other" against the green/aqua
+     pair, which is what the HR and destructive states need it to do. */
+  --hot: #a8aedd;
+  --hot-dim: rgba(168, 174, 221, 0.13);
+  --gold: #3fdcc9;
 
   --radius: 16px;
   --radius-sm: 10px;
@@ -36,6 +39,17 @@
 
   --ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1.45);
   color-scheme: dark;
+}
+
+/* Same hue and lightness, the chroma sRGB could not carry. Progressive: any
+   engine without color() keeps the hex values above. */
+@supports (color: color(display-p3 1 1 1)) {
+  :root {
+    --accent: color(display-p3 0.7649 1.0000 0.7012);
+    --accent-2: color(display-p3 0.4462 0.8504 0.7883);
+    --hot: color(display-p3 0.6625 0.6809 0.8520);
+    --gold: color(display-p3 0.4462 0.8504 0.7883);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -62,16 +76,18 @@ body {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(60rem 40rem at 8% -10%, rgba(47, 224, 192, 0.10), transparent 60%),
-    radial-gradient(50rem 40rem at 105% 110%, rgba(255, 125, 104, 0.06), transparent 55%),
-    linear-gradient(180deg, #08110f 0%, var(--bg) 40%);
+    radial-gradient(60rem 40rem at 8% -10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
+    radial-gradient(50rem 40rem at 105% 110%, color-mix(in srgb, var(--hot) 6%, transparent), transparent 55%),
+    linear-gradient(180deg, #060606 0%, var(--bg) 40%);
 }
 .glow::after {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.4;
-  mix-blend-mode: overlay;
+  /* `overlay` computes 2*backdrop*source, which annihilates the grain against
+     a #020202 ground. `screen` adds light instead, so it survives. */
+  opacity: 0.12;
+  mix-blend-mode: screen;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
 }
 
@@ -240,8 +256,10 @@ a { color: inherit; text-decoration: none; }
   display: grid; place-items: center;
   border-radius: 13px;
   color: var(--accent);
-  background: radial-gradient(120% 120% at 30% 20%, rgba(47, 224, 192, 0.18), rgba(47, 224, 192, 0.04));
-  border: 1px solid var(--accent-dim);
+  /* Tile removed — the glyph sits bare on the card. The 3rem box stays: it
+     holds the grid column, so titles and dates keep their alignment. */
+  background: none;
+  border: none;
 }
 .card__title {
   font-family: var(--font-display);
@@ -405,8 +423,8 @@ a { color: inherit; text-decoration: none; }
   display: flex; align-items: flex-start; gap: 0.55rem;
   margin-top: 0.9rem; padding: 0.65rem 0.85rem;
   font-size: 0.82rem; line-height: 1.45; color: var(--gold);
-  background: rgba(255, 206, 115, 0.08);
-  border: 1px solid rgba(255, 206, 115, 0.22); border-radius: 10px;
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent); border-radius: 10px;
 }
 .callout svg { flex: none; margin-top: 0.1rem; }
 .callout strong { color: var(--gold); }
@@ -431,8 +449,8 @@ a { color: inherit; text-decoration: none; }
   display: grid; place-items: center;
   border-radius: 16px;
   color: var(--accent);
-  background: radial-gradient(120% 120% at 30% 20%, rgba(47, 224, 192, 0.2), rgba(47, 224, 192, 0.05));
-  border: 1px solid var(--accent-dim);
+  background: none;
+  border: none;
   flex: none;
 }
 .hero__title {
@@ -821,8 +839,8 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .slot.is-active { outline: 2px solid var(--accent); outline-offset: 2px; }
 .slot--add .slot__reps { color: var(--muted); }
 @keyframes slot-breathe {
-  0%, 100% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 0 0 rgba(47, 224, 192, 0); }
-  50% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 14px -2px rgba(47, 224, 192, 0.45); }
+  0%, 100% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 14px -2px color-mix(in srgb, var(--accent) 45%, transparent); }
 }
 .slot:focus-visible, .chip:focus-visible, .repstep__btn:focus-visible,
 .sheet__close:focus-visible, .roller__btn:focus-visible, .stepbtn:focus-visible {
@@ -1128,4 +1146,48 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Illuminate 750 — brand gradient on glyphs, and HDR chrome.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Phosphor renders duotone icons as fills (a 0.2-opacity shape plus the solid
+   one), not strokes — so the paint server goes on `fill`. `fill` inherits, so
+   setting it on the <svg> reaches both layers. The gradient itself is defined
+   once in the page shell (see index.ts, #sportGrad). */
+.card__icon svg,
+.hero__icon svg { fill: url(#sportGrad); }
+
+/* ── HDR chrome ────────────────────────────────────────────────────────────
+   CSS colour cannot exceed SDR white — only real HDR content can. Each glowing
+   element therefore carries its own Rec.2020 PQ video. Applied only to chrome
+   there is exactly one of (logo, active pill, the "AI"); deliberately NOT to
+   per-row sport icons, which would mean one decoding video per workout.
+
+   Everything is gated behind an actual HDR display: PQ content tone-maps to a
+   flat grey on SDR, which would strip the brand colour. On SDR none of this
+   renders and the ordinary CSS gradients stand. */
+.brand__mark { position: relative; overflow: hidden; }
+.brand__name { position: relative; }
+.filterchip.is-active { position: relative; isolation: isolate; }
+
+.mark-hdr, .chip-hdr, .name-hdr {
+  position: absolute; inset: 0; display: none; pointer-events: none;
+}
+.mark-hdr, .chip-hdr {
+  width: 100%; height: 100%; object-fit: cover; border-radius: inherit;
+}
+.chip-hdr { z-index: -1; }
+.brand__mark svg { position: relative; z-index: 1; }
+.name-hdr video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+@supports (dynamic-range-limit: no-limit) {
+  @media (dynamic-range: high) {
+    .mark-hdr, .chip-hdr, .name-hdr { display: block; dynamic-range-limit: no-limit; }
+    /* only the "AI" is hidden — nothing light sits under it, so its
+       anti-aliased mask edges have nothing to halo against */
+    .brand__ai.is-hdr { color: transparent; }
+  }
 }

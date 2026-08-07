@@ -68,7 +68,11 @@ function useAiMask(nameRef, aiRef, layerRef) {
       // measureText("Tr"), so kerning and letter-spacing cannot disagree.
       const x = ab.left - nb.left;
 
-      const S = Math.min(3, (window.devicePixelRatio || 1) * 2);
+      // The glyph becomes an alpha bitmap, not text, so it can never match the
+      // hinted, subpixel-antialiased "Tr"/"ner" beside it — but it can get
+      // close. The mask is supersampled well past device pixels; the element
+      // is ~80x21 CSS px, so even 8x is a trivial canvas (~640x170).
+      const S = Math.min(8, (window.devicePixelRatio || 1) * 4);
       const cv = document.createElement("canvas");
       cv.width = Math.ceil(w * S); cv.height = Math.ceil(h * S);
       const c = cv.getContext("2d");

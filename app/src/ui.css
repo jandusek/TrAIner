@@ -61,10 +61,10 @@
 }
 @supports (color: color(display-p3 1 1 1)) {
   :root {
-    --accent: color(display-p3 0.7036 0.9524 0.1778);
-    --accent-2: color(display-p3 0.0930 0.7274 0.5964);
-    --hot: color(display-p3 0.3879 0.4160 0.7587);
-    --gold: color(display-p3 0.0212 0.3622 0.5094);
+    --accent: color(display-p3 0.8562 0.9788 0.4587);
+    --accent-2: color(display-p3 0.3371 0.8690 0.7956);
+    --hot: color(display-p3 0.6560 0.6770 0.8854);
+    --gold: color(display-p3 0.1569 0.6360 0.7415);
   }
 }
 [data-theme="sonar"] {
@@ -90,10 +90,10 @@
 }
 @supports (color: color(display-p3 1 1 1)) {
   [data-theme="sonar"] {
-    --accent: color(display-p3 0.4794 0.2187 1.0000);
-    --accent-2: color(display-p3 0.0629 0.1923 1.0000);
-    --hot: color(display-p3 0.1050 0.7537 0.7897);
-    --gold: color(display-p3 0.1379 0.7003 0.4210);
+    --accent: color(display-p3 0.7216 0.5050 1.0000);
+    --accent-2: color(display-p3 0.2782 0.4757 1.0000);
+    --hot: color(display-p3 0.3574 0.8827 0.9011);
+    --gold: color(display-p3 0.4071 0.8545 0.6807);
   }
 }
 [data-theme="ember"] {
@@ -119,10 +119,10 @@
 }
 @supports (color: color(display-p3 1 1 1)) {
   [data-theme="ember"] {
-    --accent: color(display-p3 0.9603 0.5812 0.0552);
-    --accent-2: color(display-p3 0.8162 0.0627 0.0019);
-    --hot: color(display-p3 0.0618 0.5393 0.5674);
-    --gold: color(display-p3 0.9746 0.7596 0.5847);
+    --accent: color(display-p3 0.9824 0.7865 0.2606);
+    --accent-2: color(display-p3 0.9144 0.2778 0.0246);
+    --hot: color(display-p3 0.2757 0.7606 0.7781);
+    --gold: color(display-p3 0.9887 0.8858 0.7886);
   }
 }
 [data-theme="flare"] {
@@ -148,10 +148,10 @@
 }
 @supports (color: color(display-p3 1 1 1)) {
   [data-theme="flare"] {
-    --accent: color(display-p3 0.8134 0.0021 0.2512);
-    --accent-2: color(display-p3 0.9343 0.4045 0.0241);
-    --hot: color(display-p3 0.8886 0.1074 0.0162);
-    --gold: color(display-p3 0.9734 0.7291 0.5443);
+    --accent: color(display-p3 0.9130 0.0277 0.5383);
+    --accent-2: color(display-p3 0.9705 0.6685 0.1684);
+    --hot: color(display-p3 0.9493 0.3615 0.1345);
+    --gold: color(display-p3 0.9882 0.8699 0.7638);
   }
 }
 

@@ -1385,6 +1385,12 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .brand__mark--tint { isolation: isolate; }
 .mark-tint {
   position: absolute; inset: 0; display: none;
+  /* Round the layer itself rather than relying on the parent's overflow:
+     hidden. Safari does not reliably clip a child that creates its own
+     stacking context (mix-blend-mode does) to a rounded container, so the
+     tint painted square corners over the mark. The video layers already
+     carry border-radius: inherit; this one was missing it. */
+  border-radius: inherit;
   /* In HDR the two paths are the same product: baked encodes accent x N nits
      into the pixels, tint multiplies white x N nits by accent. They diverge
      only in how each tone-maps to SDR — baked desaturates on the way down,

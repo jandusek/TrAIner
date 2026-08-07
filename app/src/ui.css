@@ -1172,20 +1172,21 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .brand__mark { position: relative; overflow: hidden; }
 .brand__name { position: relative; }
 .filterchip.is-active { position: relative; isolation: isolate; }
+.btn--accent { position: relative; isolation: isolate; }
 
-.mark-hdr, .chip-hdr, .name-hdr {
+.mark-hdr, .chip-hdr, .name-hdr, .btn-hdr {
   position: absolute; inset: 0; display: none; pointer-events: none;
 }
-.mark-hdr, .chip-hdr {
+.mark-hdr, .chip-hdr, .btn-hdr {
   width: 100%; height: 100%; object-fit: cover; border-radius: inherit;
 }
-.chip-hdr { z-index: -1; }
+.chip-hdr, .btn-hdr { z-index: -1; }
 .brand__mark svg { position: relative; z-index: 1; }
 .name-hdr video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 @supports (dynamic-range-limit: no-limit) {
   @media (dynamic-range: high) {
-    .mark-hdr, .chip-hdr, .name-hdr { display: block; dynamic-range-limit: no-limit; }
+    .mark-hdr, .chip-hdr, .name-hdr, .btn-hdr { display: block; dynamic-range-limit: no-limit; }
     /* only the "AI" is hidden — nothing light sits under it, so its
        anti-aliased mask edges have nothing to halo against */
     .brand__ai.is-hdr { color: transparent; }

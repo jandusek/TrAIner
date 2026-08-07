@@ -343,6 +343,24 @@ function evalAuthorLabel(generatedBy) {
   return generatedBy.split("/").pop(); // fallback: last path segment of the id
 }
 
+
+/* HDR glow — see home.client.js for the reasoning. Only CTAs that are already
+   the accent gradient get one: they are the single primary action on the page,
+   so this stays one video each rather than one per row. */
+const HDR_BRAND = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKdEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEvTbuMU6uEHFO7a1OsggKH7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjEuMS4xMDBXQYxMYXZmNjEuMS4xMDBEiYhAj0AAAAAAABZUrmvUrgEAAAAAAABL14EBc8WIP97QIMNc/a+cgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QHc1lA4JywgUC6gUCagQJVsJBVuoEQVbGBCVW7gQlVuYECElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYxLjEuMTAwc3PZY8CLY8WIP97QIMNc/a9nyKRFo4dFTkNPREVSRIeXTGF2YzYxLjMuMTAwIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z1QM/ngQCjt4EAAICSSYNCWAH4AfsEHBIODCkAABhgAAAlI///nKB4HN+GUJIpob3//1sfqqO////tORflwACjk4EAfQCWAECSnBBJwAADIAAAVHCjk4EA+gCWAECSnBBLIAADIAAAVHCjk4EBdwCWAECSnBBKQAADIAAAVHCjk4EB9ACWAECSnBBJQAADIAAAVHCjk4ECcQCWAECSnBBIIAADIAAAVHCjk4EC7gCWAECSnBBHoAADIAAAVHCjk4EDawCWAECSnBBHAAADIAAAVHAcU7trkbuPs4EAt4r3gQHxggGy8IED";
+
+function HdrGlow({ className }) {
+  return html`<video
+    class=${className}
+    src=${HDR_BRAND}
+    autoPlay
+    muted
+    loop
+    playsInline
+    aria-hidden="true"
+  />`;
+}
+
 function Evaluation({ ev, onGenerate, generating, error, stale }) {
   const btnLabel = generating
     ? "Generating…"
@@ -355,6 +373,7 @@ function Evaluation({ ev, onGenerate, generating, error, stale }) {
       disabled=${generating}
       onClick=${onGenerate}
     >
+      ${!ev && !generating ? html`<${HdrGlow} className="btn-hdr" />` : null}
       <${I} name="Sparkle" size=${13} weight="fill" />${btnLabel}
     </button>
   `;
@@ -1508,6 +1527,7 @@ function Notes({ note }) {
       <div class="editor" ref=${elRef}></div>
       <div class="saverow">
         <button class="btn btn--accent" onClick=${save}>
+          <${HdrGlow} className="btn-hdr" />
           <${I} name="FloppyDisk" size=${16} weight="bold" />Save notes
         </button>
         <span

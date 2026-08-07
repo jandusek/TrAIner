@@ -49,13 +49,13 @@ const THEMES = {
       "#fde2cc"
     ]
   },
-  "neon": {
-    "label": "Neon",
+  "dusk": {
+    "label": "Dusk",
     "swatches": [
-      "#ff4fd8",
-      "#a855f7",
-      "#9b8cff",
-      "#ffb0e8"
+      "#f88987",
+      "#6b59d7",
+      "#36d4cf",
+      "#fcd4c0"
     ]
   }
 };

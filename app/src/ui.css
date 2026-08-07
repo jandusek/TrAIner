@@ -39,61 +39,61 @@
    along the shortest hue arc, so intensity reads as rising luminance. */
 
 :root {
-  --accent: #afffa9;
+  --accent: #d6f87e;
   --accent-2: #3fdcc9;
-  --accent-ink: #001800;
-  --accent-dim: rgba(175, 255, 169, 0.14);
+  --accent-ink: #0e1400;
+  --accent-dim: rgba(214, 248, 126, 0.14);
   --hot: #a8aedd;
   --hot-dim: rgba(168, 174, 221, 0.13);
   --gold: #00a2b8;
   --z1: #a8aedd;
   --z2: #73c5ed;
   --z3: #3fdcc9;
-  --z4: #76efba;
-  --z5: #afffa9;
+  --z4: #85efa7;
+  --z5: #d6f87e;
   --pz1: #a8aedd;
   --pz2: #88bded;
   --pz3: #5bcee8;
   --pz4: #3fdcc9;
-  --pz5: #63e9c0;
-  --pz6: #89f5b5;
-  --pz7: #afffa9;
+  --pz5: #6beab3;
+  --pz6: #a0f399;
+  --pz7: #d6f87e;
 }
 @supports (color: color(display-p3 1 1 1)) {
   :root {
-    --accent: color(display-p3 0.5016 1.0000 0.4063);
+    --accent: color(display-p3 0.7036 0.9524 0.1778);
     --accent-2: color(display-p3 0.0930 0.7274 0.5964);
     --hot: color(display-p3 0.3879 0.4160 0.7587);
     --gold: color(display-p3 0.0212 0.3622 0.5094);
   }
 }
 [data-theme="sonar"] {
-  --accent: #3eecee;
-  --accent-2: #3a78f2;
-  --accent-ink: #001616;
-  --accent-dim: rgba(62, 236, 238, 0.14);
-  --hot: #b883e5;
-  --hot-dim: rgba(184, 131, 229, 0.13);
-  --gold: #51d9ad;
-  --z1: #b883e5;
-  --z2: #877bf2;
-  --z3: #3a78f2;
-  --z4: #00b9f9;
-  --z5: #3eecee;
-  --pz1: #b883e5;
-  --pz2: #997def;
-  --pz3: #727af4;
-  --pz4: #3a78f2;
-  --pz5: #00a5fa;
-  --pz6: #00cbf6;
-  --pz7: #3eecee;
+  --accent: #bd86f8;
+  --accent-2: #427ff6;
+  --accent-ink: #180926;
+  --accent-dim: rgba(189, 134, 248, 0.14);
+  --hot: #47e0e2;
+  --hot-dim: rgba(71, 224, 226, 0.13);
+  --gold: #58d8ae;
+  --z1: #47e0e2;
+  --z2: #00b6f4;
+  --z3: #427ff6;
+  --z4: #8981fe;
+  --z5: #bd86f8;
+  --pz1: #47e0e2;
+  --pz2: #00c6ee;
+  --pz3: #00a5f7;
+  --pz4: #427ff6;
+  --pz5: #7580fd;
+  --pz6: #9c83fd;
+  --pz7: #bd86f8;
 }
 @supports (color: color(display-p3 1 1 1)) {
   [data-theme="sonar"] {
-    --accent: color(display-p3 0.0971 0.8483 0.8888);
-    --accent-2: color(display-p3 0.0464 0.1639 1.0000);
-    --hot: color(display-p3 0.4565 0.2072 0.8454);
-    --gold: color(display-p3 0.1243 0.7080 0.4153);
+    --accent: color(display-p3 0.4794 0.2187 1.0000);
+    --accent-2: color(display-p3 0.0629 0.1923 1.0000);
+    --hot: color(display-p3 0.1050 0.7537 0.7897);
+    --gold: color(display-p3 0.1379 0.7003 0.4210);
   }
 }
 [data-theme="ember"] {
@@ -717,7 +717,10 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .chk input:checked + .chk__box {
   background: linear-gradient(150deg, var(--accent), var(--accent-2));
   border-color: transparent;
-  box-shadow: 0 0 0 4px var(--accent-dim), 0 6px 16px -6px var(--accent);
+  /* A tight ring only. The previous 4px halo plus a 16px coloured drop-shadow
+     bloomed around every box and, down a column of laps, read as a rendering
+     fault rather than as checked state. */
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
 .chk input:checked + .chk__box svg { opacity: 1; transform: scale(1) rotate(0); }
 .chk input:focus-visible + .chk__box { box-shadow: 0 0 0 3px var(--accent-dim); }

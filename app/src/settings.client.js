@@ -25,7 +25,7 @@ const THEMES = {
   "illuminate": {
     "label": "Illuminate",
     "swatches": [
-      "#afffa9",
+      "#d6f87e",
       "#3fdcc9",
       "#a8aedd",
       "#00a2b8"
@@ -34,10 +34,10 @@ const THEMES = {
   "sonar": {
     "label": "Sonar",
     "swatches": [
-      "#3eecee",
-      "#3a78f2",
-      "#b883e5",
-      "#51d9ad"
+      "#bd86f8",
+      "#427ff6",
+      "#47e0e2",
+      "#58d8ae"
     ]
   },
   "ember": {

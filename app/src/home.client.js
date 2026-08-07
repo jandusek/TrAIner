@@ -44,8 +44,30 @@ function useAiMask(nameRef, aiRef, layerRef) {
       const name = nameRef.current, ai = aiRef.current, layer = layerRef.current;
       if (!name || !ai || !layer) return;
       const cs = getComputedStyle(name);
-      const w = name.offsetWidth, h = name.offsetHeight;
+      // Fractional box, not offsetWidth/Height: those round to integers, which
+      // would stretch the mask against the real layout box.
+      const nb = name.getBoundingClientRect();
+      const ab = ai.getBoundingClientRect();
+      const w = nb.width, h = nb.height;
       if (!w || !h) return;
+
+      // Both axes are MEASURED, not derived. Deriving the baseline by centring
+      // the font's bounding box in the line box is only an approximation of
+      // how a browser lays out a line, and it drifts whenever a font's
+      // reported ascent/descent differ from the metrics used for layout —
+      // which is what pushed the "AI" off the baseline of the word around it.
+      // A zero-height inline-block sits exactly on the baseline, so the DOM
+      // can just be asked where it is.
+      const probe = document.createElement("span");
+      probe.style.cssText =
+        "display:inline-block;width:0;height:0;vertical-align:baseline";
+      name.appendChild(probe);
+      const baseline = probe.getBoundingClientRect().top - nb.top;
+      probe.remove();
+      // x likewise comes from the span's own rect rather than from
+      // measureText("Tr"), so kerning and letter-spacing cannot disagree.
+      const x = ab.left - nb.left;
+
       const S = Math.min(3, (window.devicePixelRatio || 1) * 2);
       const cv = document.createElement("canvas");
       cv.width = Math.ceil(w * S); cv.height = Math.ceil(h * S);
@@ -55,15 +77,14 @@ function useAiMask(nameRef, aiRef, layerRef) {
       if ("letterSpacing" in c) c.letterSpacing = cs.letterSpacing;
       c.textBaseline = "alphabetic";
       c.fillStyle = "#fff";
-      // baseline placed the way a browser centres a line box
-      const m = c.measureText("Hg");
-      const y = (h - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2
-              + m.fontBoundingBoxAscent;
-      c.fillText("AI", c.measureText("Tr").width, y);
+      c.fillText("AI", x, baseline);
       const url = `url("${cv.toDataURL("image/png")}")`;
       layer.style.webkitMaskImage = url; layer.style.maskImage = url;
       layer.style.webkitMaskRepeat = layer.style.maskRepeat = "no-repeat";
-      layer.style.webkitMaskSize = layer.style.maskSize = "100% 100%";
+      // exact canvas-pixel mapping — "100% 100%" would rescale by the ceil()
+      layer.style.webkitMaskSize = layer.style.maskSize =
+        `${cv.width / S}px ${cv.height / S}px`;
+      layer.style.webkitMaskPosition = layer.style.maskPosition = "0 0";
       ai.classList.add("is-hdr");
     }
     build();

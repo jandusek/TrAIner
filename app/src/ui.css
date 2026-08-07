@@ -1291,15 +1291,33 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
    stacking context is missing. */
 .fab { isolation: isolate; }
 
+/* One white PQ video per nit level, tinted by CSS. The colour is a token
+   again, so a new theme costs no assets and a theme switch repaints like any
+   other variable — no repointing, no per-theme URLs. Multiply is what makes
+   it work: it scales channels rather than clamping, so HDR white x accent
+   stays above SDR white. */
 .mark-hdr, .chip-hdr, .name-hdr, .btn-hdr {
   position: absolute; inset: 0; display: none; pointer-events: none;
 }
-.mark-hdr, .chip-hdr, .btn-hdr {
-  width: 100%; height: 100%; object-fit: cover; border-radius: inherit;
+.glow {
+  position: absolute; inset: 0;
+  border-radius: inherit; overflow: hidden; isolation: isolate;
+}
+.glow-vid {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border-radius: inherit;
+}
+.glow-tint {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--accent) 86%, white),
+    color-mix(in srgb, var(--accent-2) 86%, white)
+  );
+  mix-blend-mode: multiply;
 }
 .chip-hdr, .btn-hdr { z-index: -1; }
 .brand__mark svg { position: relative; z-index: 1; }
-.name-hdr video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 @supports (dynamic-range-limit: no-limit) {
   @media (dynamic-range: high) {
@@ -1368,43 +1386,6 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .hdrcard:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-dim); }
 .hdrcard.is-active { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
 
-/* ── A/B: baked-colour glow vs white backlight + CSS multiply ──────────────
-   The shipped glow bakes the theme gradient into the video, so every theme
-   needs its own asset. If a flat white PQ video multiplied by a CSS gradient
-   holds its headroom, one asset per nit level covers every theme and the
-   colour tracks the tokens for free. Multiply is the candidate because it
-   scales channels rather than clamping: HDR white x 0.5 red is still above
-   SDR white. Whether Chrome composites the blend in extended range is the
-   open question this comparison answers. */
-.markab { display: flex; align-items: center; gap: 0.55rem; }
-.markab__item { display: grid; justify-items: center; gap: 0.25rem; }
-.markab__label {
-  font-family: var(--font-mono); font-size: 0.53rem; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--faint);
-}
-.brand__mark--tint { isolation: isolate; }
-.mark-tint {
-  position: absolute; inset: 0; display: none;
-  /* Round the layer itself rather than relying on the parent's overflow:
-     hidden. Safari does not reliably clip a child that creates its own
-     stacking context (mix-blend-mode does) to a rounded container, so the
-     tint painted square corners over the mark. The video layers already
-     carry border-radius: inherit; this one was missing it. */
-  border-radius: inherit;
-  /* In HDR the two paths are the same product: baked encodes accent x N nits
-     into the pixels, tint multiplies white x N nits by accent. They diverge
-     only in how each tone-maps to SDR — baked desaturates on the way down,
-     tint keeps full sRGB saturation because its colour is applied after the
-     white video has tone-mapped. Mixing a little white into the tint pulls it
-     back toward baked's rendering; it also lifts the result slightly, since
-     multiplying by a lighter colour subtracts less. */
-  background: linear-gradient(
-    150deg,
-    color-mix(in srgb, var(--accent) 86%, white),
-    color-mix(in srgb, var(--accent-2) 86%, white)
-  );
-  mix-blend-mode: multiply;
-}
 @supports (dynamic-range-limit: no-limit) {
   @media (dynamic-range: high) {
     .brand__mark--tint.is-hdr .mark-tint { display: block; }

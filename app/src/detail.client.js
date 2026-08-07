@@ -361,21 +361,26 @@ const hdrNits = () => {
   const v = document.documentElement.dataset.hdr;
   return v && v !== "off" ? v : "500";
 };
+/* One asset per nit level, shared by every theme — the colour comes from
+   .glow-tint in CSS, not from the video. */
 const glowSrc = () => {
-  const k = `${themeKey()}@${hdrNits()}`;
+  const k = `white@${hdrNits()}`;
   return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
 };
 
 function HdrGlow({ className }) {
-  return html`<video
-    class=${className}
-    src=${glowSrc()}
-    autoPlay
-    muted
-    loop
-    playsInline
-    aria-hidden="true"
-  />`;
+  return html`<span class=${`glow ${className}`}>
+    <video
+      class="glow-vid"
+      src=${glowSrc()}
+      autoPlay
+      muted
+      loop
+      playsInline
+      aria-hidden="true"
+    />
+    <span class="glow-tint"></span>
+  </span>`;
 }
 
 function Evaluation({ ev, onGenerate, generating, error, stale }) {

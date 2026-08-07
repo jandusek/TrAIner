@@ -27,21 +27,26 @@ const hdrNits = () => {
   const v = document.documentElement.dataset.hdr;
   return v && v !== "off" ? v : "500";
 };
-const glowSrc = (theme) => {
-  const k = `${theme || themeKey()}@${hdrNits()}`;
+/* One asset per nit level, shared by every theme — the colour comes from
+   .glow-tint in CSS, not from the video. */
+const glowSrc = () => {
+  const k = `white@${hdrNits()}`;
   return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
 };
 
 function HdrGlow({ className }) {
-  return html`<video
-    class=${className}
-    src=${glowSrc()}
-    autoPlay
-    muted
-    loop
-    playsInline
-    aria-hidden="true"
-  />`;
+  return html`<span class=${`glow ${className}`}>
+    <video
+      class="glow-vid"
+      src=${glowSrc()}
+      autoPlay
+      muted
+      loop
+      playsInline
+      aria-hidden="true"
+    />
+    <span class="glow-tint"></span>
+  </span>`;
 }
 
 /* The "AI" glows by masking the same video to a text shape. The mask is drawn
@@ -451,30 +456,9 @@ function App() {
     <div class="wrap">
       <header class="topbar">
         <div class="brand">
-          <div class="markab">
-            <div class="markab__item">
-              <div class="brand__mark">
-                <${HdrGlow} className="mark-hdr" />
-                <${I} name="Waveform" size=${22} weight="bold" />
-              </div>
-              <span class="markab__label">baked</span>
-            </div>
-            <div class="markab__item">
-              <div class="brand__mark brand__mark--tint is-hdr">
-                <video
-                  class="mark-hdr"
-                  src=${glowSrc("white")}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  aria-hidden="true"
-                />
-                <span class="mark-tint"></span>
-                <${I} name="Waveform" size=${22} weight="bold" />
-              </div>
-              <span class="markab__label">tint</span>
-            </div>
+          <div class="brand__mark">
+            <${HdrGlow} className="mark-hdr" />
+            <${I} name="Waveform" size=${22} weight="bold" />
           </div>
           <div>
             <div class="brand__name" ref=${nameRef}>

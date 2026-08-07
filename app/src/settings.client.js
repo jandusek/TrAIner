@@ -17,8 +17,10 @@ const hdrNits = () => {
   const v = document.documentElement.dataset.hdr;
   return v && v !== "off" ? v : "500";
 };
+/* One asset per nit level, shared by every theme — the colour comes from
+   .glow-tint in CSS, not from the video. */
 const glowSrc = () => {
-  const k = `${themeKey()}@${hdrNits()}`;
+  const k = `white@${hdrNits()}`;
   return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
 };
 
@@ -80,11 +82,11 @@ function currentTheme() {
    rendered, and those components are siblings of the pickers here, so setState
    never reaches them — without this they keep the previous theme or level
    until a reload. */
-function repointGlows(theme, nits) {
-  const k = `${theme}@${nits}`;
+function repointGlows(nits) {
+  const k = `white@${nits}`;
   const v = (window.__GLOW_VER || {})[k] || "";
   document
-    .querySelectorAll(".mark-hdr, .chip-hdr, .btn-hdr, .name-hdr video, .glyph-hdr video")
+    .querySelectorAll(".glow-vid")
     .forEach((el) => {
       el.src = `/glow/${encodeURIComponent(k)}.webm?v=${v}`;
       el.play().catch(() => {});
@@ -105,7 +107,7 @@ function HdrPicker() {
     } catch (e) {
       /* private mode — applies for this session only */
     }
-    if (v !== "off") repointGlows(currentTheme(), v);
+    if (v !== "off") repointGlows(v);
     setNits(v);
   }
   const opts = [...levels.map(String), "off"];
@@ -155,7 +157,8 @@ function ThemePicker() {
        was resolved when its component last rendered. Those components are
        siblings of this one, so setTheme does not reach them and they would
        keep the old theme's video until a reload. Repoint them directly. */
-    repointGlows(key, hdrNits());
+    /* No repointing needed any more: the glow's colour is a CSS token, so it
+       repaints with the theme. Only the nit level changes the video src. */
     setTheme(key);
   }
   return html`
@@ -196,15 +199,18 @@ function ThemePicker() {
 }
 
 function HdrGlow({ className }) {
-  return html`<video
-    class=${className}
-    src=${glowSrc()}
-    autoPlay
-    muted
-    loop
-    playsInline
-    aria-hidden="true"
-  />`;
+  return html`<span class=${`glow ${className}`}>
+    <video
+      class="glow-vid"
+      src=${glowSrc()}
+      autoPlay
+      muted
+      loop
+      playsInline
+      aria-hidden="true"
+    />
+    <span class="glow-tint"></span>
+  </span>`;
 }
 
 

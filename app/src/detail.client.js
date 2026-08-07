@@ -576,7 +576,9 @@ function RouteMap({ sport }) {
         source: "route",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": "#afffa9",
+          // Drift, not the accent: the route is a trace of what happened, and
+          // the accent is reserved for live values and primary actions.
+          "line-color": "#a8aedd",
           "line-width": 4,
           "line-opacity": 0.95,
         },
@@ -608,11 +610,13 @@ function RouteMap({ sport }) {
         source: "ends",
         paint: {
           "circle-radius": 6,
+          // Both ends must stay separable from the Drift route and from each
+          // other, so neither can reuse the line's colour.
           "circle-color": [
             "match",
             ["get", "role"],
             "finish",
-            "#a8aedd",
+            "#3fdcc9",
             "#afffa9",
           ],
           "circle-stroke-width": 2,

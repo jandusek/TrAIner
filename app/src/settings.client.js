@@ -30,20 +30,20 @@ const THEMES = {
       "#a8aedd"
     ]
   },
-  "purple": {
-    "label": "Purple",
+  "sonar": {
+    "label": "Sonar",
     "swatches": [
-      "#6ee9de",
-      "#00c9d5",
-      "#0094fb"
+      "#3eecee",
+      "#3a78f2",
+      "#b883e5"
     ]
   },
-  "purple2": {
-    "label": "Purple 2",
+  "ember": {
+    "label": "Ember",
     "swatches": [
-      "#c9e1d7",
-      "#83ced2",
-      "#979ad6"
+      "#fbc951",
+      "#ec5022",
+      "#cb84cd"
     ]
   },
   "neon": {

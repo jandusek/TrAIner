@@ -833,15 +833,15 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 /* ── set input sheet — bottom sheet on mobile, dialog on desktop ────────── */
 .sheet-backdrop {
   position: fixed; inset: 0; z-index: 60;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.38);
   display: flex; align-items: flex-end; justify-content: center;
 }
 .sheet {
   width: 100%; max-width: 30rem;
   background: var(--surface); border: 1px solid var(--line);
   border-radius: 1rem 1rem 0 0;
-  padding: 1rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
-  display: grid; gap: 1rem;
+  padding: 0.85rem 1.2rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  display: grid; gap: 0.85rem;
   animation: sheet-up 0.18s ease-out;
 }
 @keyframes sheet-up {
@@ -857,6 +857,10 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
   border: 1px solid var(--line); background: none; color: var(--muted); cursor: pointer;
 }
 .sheet__close:hover { color: var(--text); }
+/* Tighter chips inside the sheet so all six (0–4+ and AMRAP) hold one row on
+   a phone — keeps the sheet short enough that the set slots stay visible. */
+.sheet .chip { min-width: 2.3rem; height: 2.3rem; padding: 0 0.55rem; font-size: 0.88rem; }
+.sheet .rirpicker__label { margin-bottom: 0.35rem; }
 @media (min-width: 860px) {
   .sheet-backdrop { align-items: center; }
   .sheet { border-radius: 1rem; padding-bottom: 1.2rem; }
@@ -919,7 +923,9 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 }
 .roller__btn:active { transform: scale(0.92); }
 .roller__btn:hover { border-color: var(--accent-dim); }
-.roller__window { position: relative; width: 100%; max-width: 12rem; overflow: hidden; }
+/* Full sheet width: the selection band reads as an instrument window edge to
+   edge, instead of a floating box arbitrarily narrower than the sheet. */
+.roller__window { position: relative; width: 100%; overflow: hidden; }
 .roller__track {
   height: 100%; overflow-y: auto;
   scroll-snap-type: y mandatory;
@@ -940,7 +946,7 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 /* Translucent center band, like an iOS UIPickerView selection indicator. */
 .roller__highlight {
   position: absolute; left: 0; right: 0; top: 50%;
-  height: 56px; transform: translateY(-50%);
+  height: 48px; transform: translateY(-50%); /* keep in sync with ROLLER_ITEM_H */
   border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2);
   background: var(--accent-dim);
   pointer-events: none;

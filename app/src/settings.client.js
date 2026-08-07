@@ -350,7 +350,7 @@ function Profile() {
             ></textarea>
             <div class="setup-actions">
               <button class="btn btn--accent" onClick=${save} disabled=${busy || !dirty}>
-                ${dirty && !busy ? html`<${HdrGlow} className="btn-hdr" />` : null}
+                <${HdrGlow} className="btn-hdr" />
                 <${I} name="FloppyDisk" size=${16} weight="bold" />${busy ? "Saving…" : "Save"}
               </button>
               ${!dirty && saved ? html`<span class="faint">Saved</span>` : null}

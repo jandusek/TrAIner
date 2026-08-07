@@ -75,6 +75,17 @@ function ThemePicker() {
     } catch (e) {
       /* private mode — the theme still applies for this session */
     }
+    /* Tokens repaint on their own, but every HDR glow is a <video> whose src
+       was resolved when its component last rendered. Those components are
+       siblings of this one, so setTheme does not reach them and they would
+       keep the old theme's video until a reload. Repoint them directly. */
+    const v = (window.__GLOW_VER || {})[key] || "";
+    document
+      .querySelectorAll(".mark-hdr, .chip-hdr, .btn-hdr, .name-hdr video, .glyph-hdr video")
+      .forEach((el) => {
+        el.src = `/glow/${key}.webm?v=${v}`;
+        el.play().catch(() => {});
+      });
     setTheme(key);
   }
   return html`

@@ -50,7 +50,7 @@ Highcharts.setOptions({
     labels: { style: { color: "#97a296", fontSize: "11.5px" }, x: -2 },
     title: { style: { color: "#97a296" } },
   },
-  legend: { itemStyle: { color: "#eaf1e9" }, itemHoverStyle: { color: "#afffa9" } },
+  legend: { itemStyle: { color: "#eaf1e9" }, itemHoverStyle: { color: cssVar("--accent") } },
   tooltip: {
     backgroundColor: "#0a0a0a",
     borderColor: "rgba(126, 176, 168, 0.24)",
@@ -347,12 +347,12 @@ function evalAuthorLabel(generatedBy) {
 /* HDR glow — see home.client.js for the reasoning. Only CTAs that are already
    the accent gradient get one: they are the single primary action on the page,
    so this stays one video each rather than one per row. */
-const HDR_BRAND = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKdEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEvTbuMU6uEHFO7a1OsggKH7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjEuMS4xMDBXQYxMYXZmNjEuMS4xMDBEiYhAj0AAAAAAABZUrmvUrgEAAAAAAABL14EBc8WIP97QIMNc/a+cgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QHc1lA4JywgUC6gUCagQJVsJBVuoEQVbGBCVW7gQlVuYECElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYxLjEuMTAwc3PZY8CLY8WIP97QIMNc/a9nyKRFo4dFTkNPREVSRIeXTGF2YzYxLjMuMTAwIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z1QM/ngQCjt4EAAICSSYNCWAH4AfsEHBIODCkAABhgAAAlI///nKB4HN+GUJIpob3//1sfqqO////tORflwACjk4EAfQCWAECSnBBJwAADIAAAVHCjk4EA+gCWAECSnBBLIAADIAAAVHCjk4EBdwCWAECSnBBKQAADIAAAVHCjk4EB9ACWAECSnBBJQAADIAAAVHCjk4ECcQCWAECSnBBIIAADIAAAVHCjk4EC7gCWAECSnBBHoAADIAAAVHCjk4EDawCWAECSnBBHAAADIAAAVHAcU7trkbuPs4EAt4r3gQHxggGy8IED";
+const themeKey = () => document.documentElement.dataset.theme || "illuminate";
 
 function HdrGlow({ className }) {
   return html`<video
     class=${className}
-    src=${HDR_BRAND}
+    src=${`/glow/${themeKey()}.webm`}
     autoPlay
     muted
     loop
@@ -668,25 +668,22 @@ function haversine(a, b) {
 
 /* ── cycling power: zone bars, power+HR chart, aerobic decoupling ──────────── */
 // Athlete's HR zones (see CLAUDE.md — Apple Watch defaults, refined over time).
+const cssVar = (n) =>
+  getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// Zone colours live in the theme (see ui.css --z1..--z5, --pz1..--pz7) so the
+// scales re-derive per theme instead of being pinned to one palette.
 const HR_ZONES = [
-  { label: "Z1 Recovery", low: 0, high: 130, color: "#a8aedd" },
-  { label: "Z2 Aerobic", low: 130, high: 141, color: "#73c5ed" },
-  { label: "Z3 Tempo", low: 141, high: 153, color: "#3fdcc9" },
-  { label: "Z4 Threshold", low: 153, high: 164, color: "#72f5bd" },
-  { label: "Z5 VO2max", low: 164, high: 200, color: "#afffa9" },
+  { label: "Z1 Recovery", low: 0, high: 130, color: cssVar("--z1") },
+  { label: "Z2 Aerobic", low: 130, high: 141, color: cssVar("--z2") },
+  { label: "Z3 Tempo", low: 141, high: 153, color: cssVar("--z3") },
+  { label: "Z4 Threshold", low: 153, high: 164, color: cssVar("--z4") },
+  { label: "Z5 VO2max", low: 164, high: 200, color: cssVar("--z5") },
 ];
 // Cool → bright gradient across a Coggan-style 7-zone power split (Active
 // Recovery through Neuromuscular). Independent of HR_ZONES — power and HR
 // zones don't share a boundary scheme, so no attempt is made to align them.
-const POWER_ZONE_COLORS = [
-  "#a8aedd",
-  "#88bced",
-  "#5bcee8",
-  "#3fdcc9",
-  "#5fedc2",
-  "#85fcb7",
-  "#afffa9",
-];
+const POWER_ZONE_COLORS = [1,2,3,4,5,6,7].map((i) => cssVar(`--pz${i}`));
 
 function PowerZones({ zonesJson }) {
   let zones;
@@ -863,7 +860,7 @@ function StrokeDriftChart({ drift }) {
           {
             name: "Strokes / lap",
             data: drift.strokes,
-            color: "#afffa9",
+            color: cssVar("--accent"),
             marker: { enabled: true, radius: 3 },
           },
         ],
@@ -963,8 +960,8 @@ function PowerHrChart({ samples }) {
         },
       },
       series: [
-        { name: "Power (W)", data: powers, yAxis: 0, color: "#afffa9", fillOpacity: 0.12, type: "area" },
-        { name: "Heart rate (bpm)", data: hrs, yAxis: 1, color: "#a8aedd" },
+        { name: "Power (W)", data: powers, yAxis: 0, color: cssVar("--accent"), fillOpacity: 0.12, type: "area" },
+        { name: "Heart rate (bpm)", data: hrs, yAxis: 1, color: cssVar("--hot") },
       ],
     };
   }, [samples]);
@@ -1155,7 +1152,7 @@ function CadenceChart({ samples }) {
             // Bars sit muted by default; only the one under the cursor pops
             // to the full accent color, drawing the eye to exactly one bar
             // at a time instead of a wall of solid teal.
-            states: { hover: { color: "#afffa9", brightness: 0 } },
+            states: { hover: { color: cssVar("--accent"), brightness: 0 } },
           },
         },
         tooltip: {

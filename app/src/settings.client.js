@@ -10,12 +10,110 @@ const BOOT = JSON.parse(document.getElementById("bootstrap").textContent);
 
 /* HDR glow — see home.client.js. Applied only to the profile Save, which is
    the page's primary action. */
-const HDR_BRAND = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKdEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEvTbuMU6uEHFO7a1OsggKH7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjEuMS4xMDBXQYxMYXZmNjEuMS4xMDBEiYhAj0AAAAAAABZUrmvUrgEAAAAAAABL14EBc8WIP97QIMNc/a+cgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QHc1lA4JywgUC6gUCagQJVsJBVuoEQVbGBCVW7gQlVuYECElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYxLjEuMTAwc3PZY8CLY8WIP97QIMNc/a9nyKRFo4dFTkNPREVSRIeXTGF2YzYxLjMuMTAwIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z1QM/ngQCjt4EAAICSSYNCWAH4AfsEHBIODCkAABhgAAAlI///nKB4HN+GUJIpob3//1sfqqO////tORflwACjk4EAfQCWAECSnBBJwAADIAAAVHCjk4EA+gCWAECSnBBLIAADIAAAVHCjk4EBdwCWAECSnBBKQAADIAAAVHCjk4EB9ACWAECSnBBJQAADIAAAVHCjk4ECcQCWAECSnBBIIAADIAAAVHCjk4EC7gCWAECSnBBHoAADIAAAVHCjk4EDawCWAECSnBBHAAADIAAAVHAcU7trkbuPs4EAt4r3gQHxggGy8IED";
+const themeKey = () => document.documentElement.dataset.theme || "illuminate";
+
+
+/* ── Theme picker ──────────────────────────────────────────────────────────
+   Themes are pure CSS: each owns the accent family and the two zone scales,
+   selected by data-theme on <html> (see ui.css). Switching is therefore a
+   single attribute write — no re-render, no reload.
+
+   The choice is persisted to localStorage and re-applied by an inline script
+   in the page shell that runs before the stylesheet, so a reload does not
+   flash Illuminate before settling on the saved theme. */
+const THEMES = {
+  "illuminate": {
+    "label": "Illuminate",
+    "swatches": [
+      "#afffa9",
+      "#3fdcc9",
+      "#a8aedd"
+    ]
+  },
+  "purple": {
+    "label": "Purple",
+    "swatches": [
+      "#6ee9de",
+      "#00c9d5",
+      "#0094fb"
+    ]
+  },
+  "purple2": {
+    "label": "Purple 2",
+    "swatches": [
+      "#c9e1d7",
+      "#83ced2",
+      "#979ad6"
+    ]
+  },
+  "neon": {
+    "label": "Neon",
+    "swatches": [
+      "#ff4fd8",
+      "#a855f7",
+      "#9b8cff"
+    ]
+  }
+};
+const THEME_KEY = "trainer.theme";
+
+function currentTheme() {
+  return document.documentElement.dataset.theme || "illuminate";
+}
+
+function ThemePicker() {
+  const [theme, setTheme] = useState(currentTheme());
+  function pick(key) {
+    if (key === "illuminate") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = key;
+    try {
+      localStorage.setItem(THEME_KEY, key);
+    } catch (e) {
+      /* private mode — the theme still applies for this session */
+    }
+    setTheme(key);
+  }
+  return html`
+    <div class="panel open">
+      <div class="panel__summary">
+        <${I} name="Palette" size=${18} weight="duotone" />Colour theme
+      </div>
+      <div class="panel__body">
+        <p>Applies everywhere — accents, charts, zone scales and the HDR glow.</p>
+        <div class="themegrid">
+          ${Object.entries(THEMES).map(
+            ([key, t]) => html`
+              <button
+                key=${key}
+                type="button"
+                class=${`themecard ${theme === key ? "is-active" : ""}`}
+                data-theme-preview=${key}
+                onClick=${() => pick(key)}
+                aria-pressed=${theme === key}
+              >
+                <span class="themecard__swatches">
+                  ${t.swatches.map(
+                    (c, i) =>
+                      html`<i key=${i} style=${{ background: c }}></i>`,
+                  )}
+                </span>
+                <span class="themecard__name">${t.label}</span>
+                ${theme === key
+                  ? html`<${I} name="Check" size=${14} weight="bold" />`
+                  : null}
+              </button>
+            `,
+          )}
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 function HdrGlow({ className }) {
   return html`<video
     class=${className}
-    src=${HDR_BRAND}
+    src=${`/glow/${themeKey()}.webm`}
     autoPlay
     muted
     loop
@@ -270,6 +368,9 @@ function App() {
 
       <div class="section-label">You</div>
       <${Profile} />
+
+      <div class="section-label">Appearance</div>
+      <${ThemePicker} />
 
       <div class="section-label">Data sources</div>
       <${Webhook} />

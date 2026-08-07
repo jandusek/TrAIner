@@ -18,17 +18,7 @@
   --muted: #97a296;
   --faint: #626c62;
 
-  --accent: #afffa9;
-  --accent-2: #3fdcc9;
-  --accent-ink: #031703;
-  --accent-dim: rgba(175, 255, 169, 0.14);
-
-  /* No warm colour exists in this palette, so --hot carries the periwinkle
-     rather than a coral. It still reads as "other" against the green/aqua
-     pair, which is what the HR and destructive states need it to do. */
-  --hot: #a8aedd;
-  --hot-dim: rgba(168, 174, 221, 0.13);
-  --gold: #3fdcc9;
+  /* accent family is theme-owned — see the theme blocks below */
 
   --radius: 16px;
   --radius-sm: 10px;
@@ -41,16 +31,129 @@
   color-scheme: dark;
 }
 
-/* Same hue and lightness, the chroma sRGB could not carry. Progressive: any
-   engine without color() keeps the hex values above. */
+/* ── Themes ───────────────────────────────────────────────────────────────
+   Each theme owns the accent family and the two derived zone scales. The
+   neutrals are shared: the ground is near-black in every theme, so only the
+   colour that sits on it changes. Illuminate lives on :root and is therefore
+   the default when no data-theme is set. Zone ramps run hot -> accent-2 ->
+   accent, interpolated in OKLCH so intensity reads as rising luminance. */
+:root {
+  --accent: #afffa9;
+  --accent-2: #3fdcc9;
+  --accent-ink: #001800;
+  --accent-dim: rgba(175, 255, 169, 0.14);
+  --hot: #a8aedd;
+  --hot-dim: rgba(168, 174, 221, 0.13);
+  --gold: #3fdcc9;
+  --z1: #a8aedd;
+  --z2: #73c5ed;
+  --z3: #3fdcc9;
+  --z4: #76efba;
+  --z5: #afffa9;
+  --pz1: #a8aedd;
+  --pz2: #88bded;
+  --pz3: #5bcee8;
+  --pz4: #3fdcc9;
+  --pz5: #63e9c0;
+  --pz6: #89f5b5;
+  --pz7: #afffa9;
+}
 @supports (color: color(display-p3 1 1 1)) {
   :root {
-    --accent: color(display-p3 0.7649 1.0000 0.7012);
-    --accent-2: color(display-p3 0.4462 0.8504 0.7883);
-    --hot: color(display-p3 0.6625 0.6809 0.8520);
-    --gold: color(display-p3 0.4462 0.8504 0.7883);
+    --accent: color(display-p3 0.5016 1.0000 0.4063);
+    --accent-2: color(display-p3 0.0930 0.7274 0.5964);
+    --hot: color(display-p3 0.3879 0.4160 0.7587);
+    --gold: color(display-p3 0.0930 0.7274 0.5964);
   }
 }
+[data-theme="purple"] {
+  --accent: #6ee9de;
+  --accent-2: #00c9d5;
+  --accent-ink: #001916;
+  --accent-dim: rgba(110, 233, 222, 0.14);
+  --hot: #0094fb;
+  --hot-dim: rgba(0, 148, 251, 0.13);
+  --gold: #6ee9de;
+  --z1: #0094fb;
+  --z2: #00b3eb;
+  --z3: #00c9d5;
+  --z4: #48d9d9;
+  --z5: #6ee9de;
+  --pz1: #0094fb;
+  --pz2: #00a9f1;
+  --pz3: #00bbe4;
+  --pz4: #00c9d5;
+  --pz5: #39d4d8;
+  --pz6: #56dfdb;
+  --pz7: #6ee9de;
+}
+@supports (color: color(display-p3 1 1 1)) {
+  [data-theme="purple"] {
+    --accent: color(display-p3 0.1970 0.8256 0.7473);
+    --accent-2: color(display-p3 0.0357 0.5890 0.6993);
+    --hot: color(display-p3 0.0302 0.2805 1.0000);
+    --gold: color(display-p3 0.1970 0.8256 0.7473);
+  }
+}
+[data-theme="purple2"] {
+  --accent: #c9e1d7;
+  --accent-2: #83ced2;
+  --accent-ink: #04160f;
+  --accent-dim: rgba(201, 225, 215, 0.14);
+  --hot: #979ad6;
+  --hot-dim: rgba(151, 154, 214, 0.13);
+  --gold: #8bb2e0;
+  --z1: #979ad6;
+  --z2: #80b7de;
+  --z3: #83ced2;
+  --z4: #a7d8d1;
+  --z5: #c9e1d7;
+  --pz1: #979ad6;
+  --pz2: #86adde;
+  --pz3: #7dbfdc;
+  --pz4: #83ced2;
+  --pz5: #9bd5d0;
+  --pz6: #b3dbd2;
+  --pz7: #c9e1d7;
+}
+@supports (color: color(display-p3 1 1 1)) {
+  [data-theme="purple2"] {
+    --accent: color(display-p3 0.5946 0.7570 0.6790);
+    --accent-2: color(display-p3 0.2492 0.6219 0.6625);
+    --hot: color(display-p3 0.3042 0.3137 0.7161);
+    --gold: color(display-p3 0.2639 0.4395 0.7893);
+  }
+}
+[data-theme="neon"] {
+  --accent: #ff4fd8;
+  --accent-2: #a855f7;
+  --accent-ink: #21051a;
+  --accent-dim: rgba(255, 79, 216, 0.14);
+  --hot: #9b8cff;
+  --hot-dim: rgba(155, 140, 255, 0.13);
+  --gold: #ffb0e8;
+  --z1: #9b8cff;
+  --z2: #a073fe;
+  --z3: #a855f7;
+  --z4: #d552ed;
+  --z5: #ff4fd8;
+  --pz1: #9b8cff;
+  --pz2: #9e7cff;
+  --pz3: #a36afc;
+  --pz4: #a855f7;
+  --pz5: #c653f2;
+  --pz6: #e351e7;
+  --pz7: #ff4fd8;
+}
+@supports (color: color(display-p3 1 1 1)) {
+  [data-theme="neon"] {
+    --accent: color(display-p3 0.9501 0.0469 0.7195);
+    --accent-2: color(display-p3 0.3566 0.0687 1.0000);
+    --hot: color(display-p3 0.3147 0.2542 1.0000);
+    --gold: color(display-p3 0.9652 0.4167 0.8233);
+  }
+}
+
 
 * { box-sizing: border-box; }
 
@@ -1202,3 +1305,36 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
     .brand__ai.is-hdr { color: transparent; }
   }
 }
+
+/* Sport-glyph gradient follows the live theme. The stops are CSS-driven so a
+   theme switch repaints them without touching the SVG in the shell. */
+#sportGrad stop:first-child { stop-color: var(--accent); }
+#sportGrad stop:last-child { stop-color: var(--accent-2); }
+
+/* ── Theme picker ─────────────────────────────────────────────────────────── */
+.themegrid {
+  display: grid; gap: 0.6rem; margin-top: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+}
+.themecard {
+  display: flex; align-items: center; gap: 0.6rem;
+  font: inherit; font-size: 0.85rem; text-align: left;
+  padding: 0.7rem 0.8rem; cursor: pointer;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  transition: border-color 0.18s, color 0.18s, transform 0.12s var(--ease-pop);
+}
+.themecard:hover { color: var(--text); border-color: var(--line-2); }
+.themecard:active { transform: scale(0.97); }
+.themecard:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-dim); }
+.themecard.is-active { color: var(--text); border-color: var(--accent); }
+.themecard.is-active svg { color: var(--accent); margin-left: auto; }
+.themecard__swatches { display: flex; flex: none; }
+/* overlapped discs read as a palette rather than three unrelated chips */
+.themecard__swatches i {
+  width: 0.95rem; height: 0.95rem; border-radius: 999px;
+  border: 2px solid var(--surface-2); margin-right: -0.42rem;
+}
+.themecard__swatches i:last-child { margin-right: 0; }
+.themecard__name { font-weight: 600; letter-spacing: 0.01em; }

@@ -27,7 +27,8 @@ const THEMES = {
     "swatches": [
       "#afffa9",
       "#3fdcc9",
-      "#a8aedd"
+      "#a8aedd",
+      "#00a2b8"
     ]
   },
   "sonar": {
@@ -35,7 +36,8 @@ const THEMES = {
     "swatches": [
       "#3eecee",
       "#3a78f2",
-      "#b883e5"
+      "#b883e5",
+      "#51d9ad"
     ]
   },
   "ember": {
@@ -43,7 +45,8 @@ const THEMES = {
     "swatches": [
       "#fbc951",
       "#ec5022",
-      "#cb84cd"
+      "#cb84cd",
+      "#fde2cc"
     ]
   },
   "neon": {
@@ -51,7 +54,8 @@ const THEMES = {
     "swatches": [
       "#ff4fd8",
       "#a855f7",
-      "#9b8cff"
+      "#9b8cff",
+      "#ffb0e8"
     ]
   }
 };

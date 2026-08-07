@@ -37,6 +37,7 @@
    changes. Illuminate is on :root and is therefore the default when no
    data-theme is set. Zone ramps run hot -> accent-2 -> accent in OKLCH
    along the shortest hue arc, so intensity reads as rising luminance. */
+
 :root {
   --accent: #afffa9;
   --accent-2: #3fdcc9;
@@ -44,7 +45,7 @@
   --accent-dim: rgba(175, 255, 169, 0.14);
   --hot: #a8aedd;
   --hot-dim: rgba(168, 174, 221, 0.13);
-  --gold: #3fdcc9;
+  --gold: #00a2b8;
   --z1: #a8aedd;
   --z2: #73c5ed;
   --z3: #3fdcc9;
@@ -63,7 +64,7 @@
     --accent: color(display-p3 0.5016 1.0000 0.4063);
     --accent-2: color(display-p3 0.0930 0.7274 0.5964);
     --hot: color(display-p3 0.3879 0.4160 0.7587);
-    --gold: color(display-p3 0.0930 0.7274 0.5964);
+    --gold: color(display-p3 0.0212 0.3622 0.5094);
   }
 }
 [data-theme="sonar"] {
@@ -73,7 +74,7 @@
   --accent-dim: rgba(62, 236, 238, 0.14);
   --hot: #b883e5;
   --hot-dim: rgba(184, 131, 229, 0.13);
-  --gold: #5bdffa;
+  --gold: #51d9ad;
   --z1: #b883e5;
   --z2: #877bf2;
   --z3: #3a78f2;
@@ -92,7 +93,7 @@
     --accent: color(display-p3 0.0971 0.8483 0.8888);
     --accent-2: color(display-p3 0.0464 0.1639 1.0000);
     --hot: color(display-p3 0.4565 0.2072 0.8454);
-    --gold: color(display-p3 0.1476 0.7377 1.0000);
+    --gold: color(display-p3 0.1243 0.7080 0.4153);
   }
 }
 [data-theme="ember"] {
@@ -102,7 +103,7 @@
   --accent-dim: rgba(251, 201, 81, 0.14);
   --hot: #cb84cd;
   --hot-dim: rgba(203, 132, 205, 0.13);
-  --gold: #fbdd67;
+  --gold: #fde2cc;
   --z1: #cb84cd;
   --z2: #e56591;
   --z3: #ec5022;
@@ -121,7 +122,7 @@
     --accent: color(display-p3 0.9603 0.5812 0.0552);
     --accent-2: color(display-p3 0.8162 0.0627 0.0019);
     --hot: color(display-p3 0.5720 0.2155 0.6388);
-    --gold: color(display-p3 0.9680 0.7246 0.1047);
+    --gold: color(display-p3 0.9746 0.7596 0.5847);
   }
 }
 [data-theme="neon"] {
@@ -1333,8 +1334,8 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .themecard__swatches { display: flex; flex: none; }
 /* overlapped discs read as a palette rather than three unrelated chips */
 .themecard__swatches i {
-  width: 0.95rem; height: 0.95rem; border-radius: 999px;
-  border: 2px solid var(--surface-2); margin-right: -0.42rem;
+  width: 0.9rem; height: 0.9rem; border-radius: 999px;
+  border: 2px solid var(--surface-2); margin-right: -0.4rem;
 }
 .themecard__swatches i:last-child { margin-right: 0; }
 .themecard__name { font-weight: 600; letter-spacing: 0.01em; }

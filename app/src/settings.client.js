@@ -52,10 +52,10 @@ const THEMES = {
   "dusk": {
     "label": "Dusk",
     "swatches": [
-      "#f88987",
-      "#6b59d7",
+      "#e3b0a3",
+      "#5c60aa",
       "#36d4cf",
-      "#fcd4c0"
+      "#fdddcb"
     ]
   }
 };

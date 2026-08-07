@@ -88,8 +88,11 @@ body {
 .wrap--cal { max-width: 30rem; }
 @media (min-width: 860px) {
   .wrap--cal { max-width: 880px; }
+  /* Action leads, context follows — the logging flow is the page's job. */
   .calgrid { display: grid; grid-template-columns: 5fr 4fr; gap: 2rem; align-items: start; }
 }
+.rxcard--context { padding-top: 0.9rem; padding-bottom: 0.9rem; }
+.rxcard--context .rxcard__note { margin-top: 0; }
 
 a { color: inherit; text-decoration: none; }
 
@@ -791,8 +794,8 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
    slot once the plan is complete. */
 .slots { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .slot {
-  display: grid; gap: 0.1rem; justify-items: center;
-  min-width: 4.2rem; padding: 0.5rem 0.6rem 0.45rem;
+  display: grid; gap: 0.15rem; justify-items: center;
+  flex: 1 1 0; min-width: 3.6rem; padding: 0.65rem 0.5rem 0.55rem;
   border: 1px solid var(--line); border-radius: 0.7rem;
   background: var(--surface); color: var(--text);
   font: inherit; cursor: pointer;
@@ -801,17 +804,31 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .slot__num { font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
 .slot__reps {
   font-family: var(--font-mono); font-variant-numeric: tabular-nums;
-  font-size: 1.35rem; font-weight: 500; line-height: 1.2;
+  font-size: 1.7rem; font-weight: 500; line-height: 1.2;
   display: grid; place-items: center;
 }
 .slot__sub { font-size: 0.62rem; color: var(--muted); display: inline-flex; align-items: center; gap: 0.2rem; }
 .slot.is-locked { opacity: 0.45; }
-.slot.is-next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.slot.is-next {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+  animation: slot-breathe 2.6s ease-in-out infinite;
+}
 .slot.is-next .slot__reps, .slot.is-next .slot__sub { color: var(--accent); }
 .slot.is-done { background: var(--surface-2); }
 .slot.is-done .slot__reps { color: var(--accent); }
+.slot.is-done .slot__sub svg { color: var(--accent); }
 .slot.is-active { outline: 2px solid var(--accent); outline-offset: 2px; }
 .slot--add .slot__reps { color: var(--muted); }
+@keyframes slot-breathe {
+  0%, 100% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 0 0 rgba(47, 224, 192, 0); }
+  50% { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 14px -2px rgba(47, 224, 192, 0.45); }
+}
+.slot:focus-visible, .chip:focus-visible, .repstep__btn:focus-visible,
+.sheet__close:focus-visible, .roller__btn:focus-visible, .stepbtn:focus-visible {
+  outline: none; box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.slot.is-next:focus-visible { box-shadow: 0 0 0 1px var(--accent) inset, 0 0 0 3px var(--accent-dim); }
 
 /* ── set input sheet — bottom sheet on mobile, dialog on desktop ────────── */
 .sheet-backdrop {
@@ -981,6 +998,19 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 }
 .resttimer--done .resttimer__tag { color: var(--accent); }
 .resttimer__stepper { display: inline-flex; align-items: center; gap: 0.4rem; margin-left: auto; }
+/* The countdown made physical: a full-width bar that drains as rest elapses
+   (aqua = time left), then flips solid coral the moment you're due back on
+   the bar — readable from across the room, which is where you are. */
+.resttimer__bar {
+  flex-basis: 100%; height: 6px; border-radius: 999px;
+  background: var(--surface-2); overflow: hidden;
+}
+.resttimer__bar-fill {
+  height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  transition: width 1s linear;
+}
+.resttimer--done .resttimer__bar-fill { background: var(--hot); transition: width 0.3s ease-out; }
 .resttimer__target { font-size: 0.76rem; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .stepbtn {
   display: grid; place-items: center;

@@ -254,6 +254,9 @@ function RestTimer({ startedAt, targetSec, onAdjustTarget, onComplete }) {
   const displaySec = Math.max(0, remaining);
   const m = Math.floor(displaySec / 60);
   const s = displaySec % 60;
+  // Fill = time remaining, draining left as rest elapses; snaps full coral
+  // at zero ("ready").
+  const pct = done ? 100 : Math.max(0, Math.min(100, (remaining / targetSec) * 100));
 
   return html`
     ${flashing ? html`<div class="restflash" aria-hidden="true"></div>` : null}
@@ -262,6 +265,9 @@ function RestTimer({ startedAt, targetSec, onAdjustTarget, onComplete }) {
       <span class="resttimer__v">${m}:${String(s).padStart(2, "0")}</span>
       <span class="resttimer__tag">${done ? "ready" : "resting"}</span>
       <${RestStepper} targetSec=${targetSec} onAdjust=${onAdjustTarget} />
+      <div class="resttimer__bar" aria-hidden="true">
+        <div class="resttimer__bar-fill" style=${{ width: `${pct}%` }}></div>
+      </div>
     </div>
   `;
 }
@@ -301,7 +307,7 @@ function SetSlots({ plan, logged, activeSlot, onSelect }) {
               ${entry
                 ? entry.is_amrap
                   ? html`<${I} name="Fire" size=${10} weight="fill" /> AMRAP`
-                  : `RIR ${entry.rir}`
+                  : html`<${I} name="Check" size=${10} weight="bold" /> RIR ${entry.rir}`
                 : isNext
                   ? "up next"
                   : "target"}
@@ -393,38 +399,20 @@ function DoneCard({ result, onLogAnother }) {
   `;
 }
 
-function PrescriptionCard({ p }) {
+/* Quiet context under the working surface: why today's targets are what they
+   are. The targets themselves live in the slot chips — no stats row here, it
+   would just repeat them. */
+function ContextCard({ p }) {
   return html`
-    <div class="rxcard">
-      <div class="rxcard__row">
-        <div class="rxcard__stat">
-          <div class="rxcard__k">Sets</div>
-          <div class="rxcard__v">${p.target_sets}</div>
-        </div>
-        <div class="rxcard__stat">
-          <div class="rxcard__k">Top-set target</div>
-          <div class="rxcard__v">${p.target_reps}<small>reps</small></div>
-        </div>
-        <div class="rxcard__stat">
-          <div class="rxcard__k">RIR band</div>
-          <div class="rxcard__v">${p.rir_target}</div>
-        </div>
-      </div>
-      ${p.amrap_due
-        ? html`<div class="callout">
-            <${I} name="Fire" size=${16} weight="fill" /><span
-              >AMRAP retest due — make your <strong>first</strong> set today a true-failure AMRAP (the AMRAP chip
-              is preselected on set 1) before your normal sets. Recalibrates every target from here.</span
-            >
-          </div>`
-        : null}
+    <div class="rxcard rxcard--context">
       <p class="rxcard__note">${p.note}</p>
       ${p.last_sequence
         ? html`<p class="faint rxcard__last">Last session: ${p.last_sequence.join(" · ")}</p>`
         : null}
       ${p.best_amrap_reps != null
         ? html`<p class="faint">
-            Best-ever ${p.best_amrap_reps} reps · floor ${p.floor_reps} reps${p.gap_days != null
+            Best-ever ${p.best_amrap_reps} reps · floor ${p.floor_reps} reps · RIR ${p.rir_target}${p.gap_days !=
+            null
               ? ` · ${p.gap_days}d since last session`
               : ""}
           </p>`
@@ -580,8 +568,15 @@ function App() {
         : data
           ? html`
               <div class="calgrid">
-                <div class="calgrid__info">${p ? html`<${PrescriptionCard} p=${p} />` : null}</div>
                 <div class="calgrid__log logcard">
+                  ${p?.amrap_due
+                    ? html`<div class="callout">
+                        <${I} name="Fire" size=${16} weight="fill" /><span
+                          >AMRAP retest due — make <strong>set 1</strong> a true-failure AMRAP (preselected in
+                          its sheet). Recalibrates every target from here.</span
+                        >
+                      </div>`
+                    : null}
                   <${SetSlots}
                     plan=${plan}
                     logged=${sets}
@@ -615,6 +610,7 @@ function App() {
                       </button>`
                     : null}
                 </div>
+                <div class="calgrid__info">${p ? html`<${ContextCard} p=${p} />` : null}</div>
               </div>
             `
           : null}

@@ -633,10 +633,11 @@ function RouteMap({ sport }) {
         source: "route",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          // --hot, not the accent: the route is a trace of what happened, and
-          // the accent is reserved for live values and primary actions. Each
-          // theme owns --hot, so the trace re-hues with the rest of the page.
-          "line-color": mapColor("--hot"),
+          // The accent. The route is the one thing this card exists to show,
+          // so it takes the theme's primary rather than the quieter --hot the
+          // trace used to carry — the faint accent wash on the roads reads as
+          // the same light, turned down.
+          "line-color": mapColor("--accent"),
           "line-width": 4,
           "line-opacity": 0.95,
         },
@@ -668,15 +669,16 @@ function RouteMap({ sport }) {
         source: "ends",
         paint: {
           "circle-radius": 6,
-          // Both ends must stay separable from the --hot route and from each
-          // other, so neither can reuse the line's colour: the theme's two
-          // accents are the pair that's guaranteed distinct in every theme.
+          // Both ends must stay separable from the route and from each other,
+          // so neither can reuse the line's colour — which is now --accent,
+          // so start moves to --hot. That leaves the three marks on the three
+          // hues every theme is required to own.
           "circle-color": [
             "match",
             ["get", "role"],
             "finish",
             mapColor("--accent-2"),
-            mapColor("--accent"),
+            mapColor("--hot"),
           ],
           "circle-stroke-width": 2,
           // Page ground, so the ring reads as a cut-out at any theme.

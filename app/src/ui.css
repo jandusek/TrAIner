@@ -309,8 +309,11 @@ a { color: inherit; text-decoration: none; }
   background: var(--surface-2); border: 1px solid var(--line);
   border-radius: 999px; padding: 0.05rem 0.42rem;
 }
+/* Sits on the accent-filled chip, so the count reads as a darker well punched
+   into it — the theme's own ink at low alpha, not a fixed dark green. */
 .filterchip.is-active .filterchip__count {
-  background: rgba(4, 33, 27, 0.16); border-color: transparent; color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent-ink) 16%, transparent);
+  border-color: transparent; color: var(--accent-ink);
 }
 
 /* ── Workout cards ───────────────────────────────────────────────────────── */
@@ -1122,7 +1125,14 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 .chip--amrap { color: var(--hot); }
 .chip--amrap.is-active {
   color: var(--accent-ink);
-  background: linear-gradient(150deg, var(--hot), #ff5a3d);
+  /* Same shape as .chip.is-active's accent gradient, one family over: --hot
+     into a deepened --hot. Mixed rather than pinned to the coral this used to
+     end on, which stayed coral in every theme. */
+  background: linear-gradient(
+    150deg,
+    var(--hot),
+    color-mix(in srgb, var(--hot) 74%, #000)
+  );
 }
 
 /* Rest timer — countdown to an adjustable target, not a stopwatch. */

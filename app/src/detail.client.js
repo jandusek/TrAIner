@@ -19,9 +19,18 @@ const maplibregl = window.maplibregl;
 // charts, so hovering shows exact values instead of reading an SVG by eye.
 const Highcharts = window.Highcharts;
 
-// One-time dark theme matching the page's own palette (ui.css's :root vars —
-// Highcharts can't read CSS custom properties itself, so these are the same
-// hex values copied over by hand; keep in sync if the palette changes).
+/* A colour, dimmed. Highcharts' own colour class does the mixing because it
+   understands every notation a theme token can arrive in — including the
+   color(display-p3 …) form the accent family takes on wide-gamut browsers,
+   which it hands to CSS color-mix() rather than dropping. (MapLibre has no
+   such fallback, hence the separate srgb() round-trip further down.) */
+const fade = (color, alpha) => Highcharts.color(color).setOpacity(alpha).get();
+
+// One-time dark theme, read from the page's own palette. Highcharts can't
+// resolve CSS custom properties itself, so each value is pulled through
+// cssVar at module scope — after the shell's inline script has set
+// data-theme, so what lands here is the athlete's chosen theme, not a copy
+// of one theme's hexes.
 Highcharts.setOptions({
   chart: {
     backgroundColor: "transparent",
@@ -35,32 +44,34 @@ Highcharts.setOptions({
   },
   title: { text: undefined },
   credits: { enabled: false },
-  colors: ["#afffa9", "#a8aedd", "#3fdcc9"],
+  // Series fallback for any chart that doesn't name its own colour: the
+  // theme's accent, its heart-rate/effort hue, then the second accent.
+  colors: [cssVar("--accent"), cssVar("--hot"), cssVar("--accent-2")],
   xAxis: {
-    lineColor: "rgba(126, 176, 168, 0.24)",
-    tickColor: "rgba(126, 176, 168, 0.24)",
+    lineColor: cssVar("--line-2"),
+    tickColor: cssVar("--line-2"),
     tickLength: 2,
     // 11.5px meets the zonebar labels (0.77rem ≈ 11.5px) in the middle of
     // Highcharts' own default (12.8px) — the two chart types sit side by
     // side in a split-row, so their type scale should match.
-    labels: { style: { color: "#97a296", fontSize: "11.5px" }, y: 14 },
+    labels: { style: { color: cssVar("--muted"), fontSize: "11.5px" }, y: 14 },
     // Visible on every chart, not just synced ones — a vertical marker at
     // the hovered instant reads naturally even solo, and is exactly what
     // cross-chart sync (see useChart's `sync` option) drives on the other
     // charts in a group.
-    crosshair: { color: "rgba(233, 242, 239, 0.25)", width: 1, dashStyle: "Dash" },
+    crosshair: { color: fade(cssVar("--text"), 0.25), width: 1, dashStyle: "Dash" },
   },
   yAxis: {
-    gridLineColor: "rgba(126, 176, 168, 0.12)",
+    gridLineColor: cssVar("--line"),
     tickLength: 0,
-    labels: { style: { color: "#97a296", fontSize: "11.5px" }, x: -2 },
-    title: { style: { color: "#97a296" } },
+    labels: { style: { color: cssVar("--muted"), fontSize: "11.5px" }, x: -2 },
+    title: { style: { color: cssVar("--muted") } },
   },
-  legend: { itemStyle: { color: "#eaf1e9" }, itemHoverStyle: { color: cssVar("--accent") } },
+  legend: { itemStyle: { color: cssVar("--text") }, itemHoverStyle: { color: cssVar("--accent") } },
   tooltip: {
-    backgroundColor: "#0a0a0a",
-    borderColor: "rgba(126, 176, 168, 0.24)",
-    style: { color: "#eaf1e9" },
+    backgroundColor: cssVar("--surface"),
+    borderColor: cssVar("--line-2"),
+    style: { color: cssVar("--text") },
   },
   plotOptions: {
     series: { animation: false, marker: { enabled: false } },
@@ -992,7 +1003,11 @@ function PowerHrChart({ samples }) {
         {
           title: { text: undefined },
           opposite: true,
-          plotBands: HR_ZONES.map((z) => ({ from: z.low, to: z.high, color: `${z.color}0f` })),
+          // A wash, not a fill — the bands orient the eye without competing
+          // with the traces. fade() rather than appending an alpha pair to the
+          // hex: that only works while every zone token happens to be 6-digit
+          // hex, and silently produces garbage the day one isn't.
+          plotBands: HR_ZONES.map((z) => ({ from: z.low, to: z.high, color: fade(z.color, 0.06) })),
         },
       ],
       tooltip: {
@@ -1211,9 +1226,9 @@ function CadenceChart({ samples }) {
           {
             name: "Cadence (spm)",
             data: points.map((s) => Math.round(s.cadence_spm)),
-            // 33% more muted than the full accent (#afffa9) — see the
+            // 33% more muted than the full accent — see the
             // column.states.hover override above for the full-color pop.
-            color: "rgba(175, 255, 169, 0.67)",
+            color: fade(cssVar("--accent"), 0.67),
           },
         ],
       };
@@ -1255,8 +1270,9 @@ function RunningHrChart({ samples }) {
             name: "Heart rate (bpm)",
             data: samples.map((s) => [s.t - t0, s.hr]),
             // Muted like cadence's bars, for the same reason — see
-            // CadenceChart's color comment.
-            color: "rgba(255, 125, 104, 0.67)",
+            // CadenceChart's color comment. --hot is the heart-rate/effort
+            // hue, and every theme owns it.
+            color: fade(cssVar("--hot"), 0.67),
             fillOpacity: 0.12,
             marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
             states: { hover: { lineWidthPlus: 0 } },
@@ -1296,7 +1312,7 @@ function HrLineChart({ samples }) {
           {
             name: "Heart rate (bpm)",
             data: samples.map((s) => [s.t - t0, s.hr]),
-            color: "rgba(255, 125, 104, 0.67)",
+            color: fade(cssVar("--hot"), 0.67),
             fillOpacity: 0.12,
             marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
             states: { hover: { lineWidthPlus: 0 } },

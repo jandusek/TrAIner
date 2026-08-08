@@ -463,6 +463,27 @@ function Focus({ focus }) {
 // fetch entirely for them (matches the ROUTE_SPORTS gate on the server).
 const ROUTE_SPORTS = new Set(["cycling", "running"]);
 
+/* Theme token → a colour MapLibre can actually parse.
+
+   The style spec's parser only understands sRGB notations (hex, rgb(), hsl(),
+   named colours). Our accent family is redeclared as color(display-p3 …) on
+   wide-gamut browsers (see ui.css's @supports blocks), which it rejects — and
+   a rejected paint value fails the whole style, not just that layer. So paint
+   the token onto a 1×1 sRGB canvas and read the pixel back: the browser clips
+   to sRGB and we hand MapLibre a plain rgba(). The clip is the honest answer
+   anyway — MapLibre draws into an untagged (sRGB) WebGL canvas, so it could
+   not show the wider primaries whatever we passed it. Alpha survives the
+   round-trip (getImageData is unpremultiplied), so a token that carries
+   transparency keeps it. */
+function srgb(value) {
+  const ctx = document.createElement("canvas").getContext("2d");
+  ctx.fillStyle = value;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+  return `rgba(${r}, ${g}, ${b}, ${(a / 255).toFixed(3)})`;
+}
+const mapColor = (name) => srgb(cssVar(name));
+
 // Custom MapLibre vector style, keyed to the app palette so the basemap is part
 // of the design system rather than a stock theme. Vector tiles from OpenFreeMap
 // (keyless, OSM data, OpenMapTiles schema). Deliberately minimal — land, water,
@@ -470,54 +491,57 @@ const ROUTE_SPORTS = new Set(["cycling", "running"]);
 // stays the hero.
 //   water = --surface  → matches the power-zones card background (by request)
 //   land  = --surface-2 → a hair lighter, so landmass reads against the water
-//   roads = faint --line-ish teal-grey
-const MAP_COLORS = {
-  land: "#101010",
-  water: "#0a0a0a",
-  road: "rgba(126,176,168,0.20)",
-};
-const MAP_STYLE = {
-  version: 8,
-  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
-  sources: {
-    ofm: { type: "vector", url: "https://tiles.openfreemap.org/planet" },
-  },
-  layers: [
-    {
-      id: "land",
-      type: "background",
-      paint: { "background-color": MAP_COLORS.land },
+//   roads = --accent at a low opacity → the one place the basemap itself picks
+//           up the theme; faint enough to stay behind the route
+//
+// Built as a function, not a module-level literal: every colour is read from
+// the live theme tokens, and a literal would freeze whichever theme happened to
+// be active when this module first evaluated.
+function mapStyle() {
+  return {
+    version: 8,
+    glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+    sources: {
+      ofm: { type: "vector", url: "https://tiles.openfreemap.org/planet" },
     },
-    {
-      id: "water",
-      type: "fill",
-      source: "ofm",
-      "source-layer": "water",
-      paint: { "fill-color": MAP_COLORS.water },
-    },
-    {
-      id: "roads",
-      type: "line",
-      source: "ofm",
-      "source-layer": "transportation",
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": MAP_COLORS.road,
-        "line-width": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          0.4,
-          14,
-          1.2,
-          18,
-          3,
-        ],
+    layers: [
+      {
+        id: "land",
+        type: "background",
+        paint: { "background-color": mapColor("--surface-2") },
       },
-    },
-  ],
-};
+      {
+        id: "water",
+        type: "fill",
+        source: "ofm",
+        "source-layer": "water",
+        paint: { "fill-color": mapColor("--surface") },
+      },
+      {
+        id: "roads",
+        type: "line",
+        source: "ofm",
+        "source-layer": "transportation",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": mapColor("--accent"),
+          "line-opacity": 0.18,
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            9,
+            0.4,
+            14,
+            1.2,
+            18,
+            3,
+          ],
+        },
+      },
+    ],
+  };
+}
 
 function RouteMap({ sport }) {
   const elRef = useRef(null);
@@ -567,7 +591,7 @@ function RouteMap({ sport }) {
     ];
     const map = new maplibregl.Map({
       container: elRef.current,
-      style: MAP_STYLE,
+      style: mapStyle(),
       attributionControl: false,
       // Fit the whole track on load — no manual view math; MapLibre tracks the
       // container size itself (ResizeObserver), so no invalidateSize dance.
@@ -598,9 +622,10 @@ function RouteMap({ sport }) {
         source: "route",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          // Drift, not the accent: the route is a trace of what happened, and
-          // the accent is reserved for live values and primary actions.
-          "line-color": "#a8aedd",
+          // --hot, not the accent: the route is a trace of what happened, and
+          // the accent is reserved for live values and primary actions. Each
+          // theme owns --hot, so the trace re-hues with the rest of the page.
+          "line-color": mapColor("--hot"),
           "line-width": 4,
           "line-opacity": 0.95,
         },
@@ -632,17 +657,19 @@ function RouteMap({ sport }) {
         source: "ends",
         paint: {
           "circle-radius": 6,
-          // Both ends must stay separable from the Drift route and from each
-          // other, so neither can reuse the line's colour.
+          // Both ends must stay separable from the --hot route and from each
+          // other, so neither can reuse the line's colour: the theme's two
+          // accents are the pair that's guaranteed distinct in every theme.
           "circle-color": [
             "match",
             ["get", "role"],
             "finish",
-            "#3fdcc9",
-            "#afffa9",
+            mapColor("--accent-2"),
+            mapColor("--accent"),
           ],
           "circle-stroke-width": 2,
-          "circle-stroke-color": "#031703",
+          // Page ground, so the ring reads as a cut-out at any theme.
+          "circle-stroke-color": mapColor("--bg"),
         },
       });
     });

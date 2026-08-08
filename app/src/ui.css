@@ -874,7 +874,7 @@ table.laps { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-wid
 }
 /* Single faint divider between the two buttons — override MapLibre's default
    light (#ddd) border-top that otherwise reads as a bright line. */
-.map--dark .maplibregl-ctrl-group button + button { border-top: 1px solid rgba(126, 176, 168, 0.07); }
+.map--dark .maplibregl-ctrl-group button + button { border-top: 1px solid var(--line); }
 .map--dark .maplibregl-ctrl-group button:not(:disabled):hover { background: var(--surface-2); }
 .map--dark .maplibregl-ctrl-icon { filter: invert(0.92); }
 /* Discreet basemap credit (MapLibre's attribution control is disabled). */

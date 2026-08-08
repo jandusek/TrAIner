@@ -502,8 +502,11 @@ const mapColor = (name) => srgb(cssVar(name));
 // stays the hero.
 //   water = --surface  → matches the power-zones card background (by request)
 //   land  = --surface-2 → a hair lighter, so landmass reads against the water
-//   roads = --accent at a low opacity → the one place the basemap itself picks
-//           up the theme; faint enough to stay behind the route
+//   roads = --hot at a low opacity → keeps the basemap theme-aware without
+//           echoing the route. It was briefly a faint --accent, which put the
+//           road web and the route on one hue and left the accent marking
+//           nothing in particular; --hot is a family over, so the two read
+//           apart at any theme.
 //
 // Built as a function, not a module-level literal: every colour is read from
 // the live theme tokens, and a literal would freeze whichever theme happened to
@@ -535,7 +538,7 @@ function mapStyle() {
         "source-layer": "transportation",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": mapColor("--accent"),
+          "line-color": mapColor("--hot"),
           "line-opacity": 0.18,
           "line-width": [
             "interpolate",

@@ -125,33 +125,37 @@
     --gold: color(display-p3 0.9887 0.8858 0.7886);
   }
 }
+/* Flare runs softer than the others by design: hues held exactly, chroma at
+   0.72 of where it started and lightness up 0.055, so it reads warm rather
+   than neon. --gold took the chroma cut only — at L 0.92 a lightness bump
+   would have flattened it into white. */
 [data-theme="flare"] {
-  --accent: #ed2a8b;
-  --accent-2: #f9ac3d;
+  --accent: #e9669b;
+  --accent-2: #fcc47e;
   --accent-ink: #250412;
-  --accent-dim: rgba(237, 42, 139, 0.14);
-  --hot: #f56333;
-  --hot-dim: rgba(245, 99, 51, 0.13);
-  --gold: #fddec6;
-  --z1: #ed2a8b;
-  --z2: #f14d68;
-  --z3: #f56333;
-  --z4: #f88938;
-  --z5: #f9ac3d;
-  --pz1: #ed2a8b;
-  --pz2: #f04474;
-  --pz3: #f2555a;
-  --pz4: #f56333;
-  --pz5: #f77d36;
-  --pz6: #f9953a;
-  --pz7: #f9ac3d;
+  --accent-dim: rgba(233, 102, 155, 0.14);
+  --hot: #f18868;
+  --hot-dim: rgba(241, 136, 104, 0.13);
+  --gold: #f6e0cf;
+  --z1: #e9669b;
+  --z2: #ed7884;
+  --z3: #f18868;
+  --z4: #f7a673;
+  --z5: #fcc47e;
+  --pz1: #e9669b;
+  --pz2: #eb738c;
+  --pz3: #ee7e7b;
+  --pz4: #f18868;
+  --pz5: #f59c6f;
+  --pz6: #f9b077;
+  --pz7: #fcc47e;
 }
 @supports (color: color(display-p3 1 1 1)) {
   [data-theme="flare"] {
-    --accent: color(display-p3 0.9130 0.0277 0.5383);
-    --accent-2: color(display-p3 0.9705 0.6685 0.1684);
-    --hot: color(display-p3 0.9493 0.3615 0.1345);
-    --gold: color(display-p3 0.9882 0.8699 0.7638);
+    --accent: color(display-p3 0.8959 0.3772 0.6037);
+    --accent-2: color(display-p3 0.9830 0.7664 0.4618);
+    --hot: color(display-p3 0.9346 0.5217 0.3761);
+    --gold: color(display-p3 0.9630 0.8777 0.8014);
   }
 }
 

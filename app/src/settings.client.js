@@ -64,10 +64,10 @@ const THEMES = {
   "flare": {
     "label": "Flare",
     "swatches": [
-      "#ed2a8b",
-      "#f9ac3d",
-      "#f56333",
-      "#fddec6"
+      "#e9669b",
+      "#fcc47e",
+      "#f18868",
+      "#f6e0cf"
     ]
   }
 };

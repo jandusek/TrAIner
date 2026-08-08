@@ -1201,6 +1201,17 @@ function CadenceChart({ samples }) {
         plotOptions: {
           column: {
             borderWidth: 0,
+            // …and a transparent border colour as a belt to that braces.
+            // Highcharts' default column border is *white*, and it drops the
+            // `stroke-width="0"` attribute off existing point paths when a
+            // chart.update() changes the point count — which is exactly what
+            // the resize-observer re-bucketing pass does whenever the
+            // first-paint bar-count estimate disagrees with the real
+            // plotWidth (so: some viewport widths, not others). SVG's default
+            // stroke-width of 1 then applies and every bar picks up a 1px
+            // white outline. With the colour transparent there's nothing to
+            // paint even if the width attribute goes missing again.
+            borderColor: "transparent",
             // Rounded caps like Apple's own Health charts — top only, flat
             // where the bar meets the axis.
             borderRadiusTopLeft: 2,

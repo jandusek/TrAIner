@@ -754,8 +754,8 @@ async function appHost(req: Request, env: Env, url: URL): Promise<Response> {
     return json({ source_id: sourceId, count: rows.results?.length ?? 0, laps: rows.results ?? [] });
   }
 
-  // Per-second power/cadence/HR for the power+HR-zone chart. Power/cadence
-  // come from the Wahoo FIT; HR is merged in from the Apple Watch echo at
+  // Per-second power/cadence/speed/HR for the power+HR-zone and speed+cadence
+  // charts. Power/cadence/speed come from the Wahoo FIT; HR is merged in from the Apple Watch echo at
   // ingest time (see store.ts's migrateCyclingSamples) — both already land
   // under this workout's own id, so a plain lookup by source_id is enough,
   // no join needed here (contrast /api/workout's echo join for the summary
@@ -770,7 +770,7 @@ async function appHost(req: Request, env: Env, url: URL): Promise<Response> {
       .first<{ id: string }>();
     if (!w) return json({ error: "not_found", detail: "workout not found" }, 404);
     const rows = await env.DB.prepare(
-      "SELECT t, power_w, cadence_rpm, hr FROM cycling_samples WHERE workout_id = ? ORDER BY t",
+      "SELECT t, power_w, cadence_rpm, speed_ms, hr FROM cycling_samples WHERE workout_id = ? ORDER BY t",
     )
       .bind(w.id)
       .all();

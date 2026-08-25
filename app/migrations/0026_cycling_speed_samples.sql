@@ -1,0 +1,30 @@
+-- Per-second speed for rides, so the detail page can chart speed across the
+-- ride instead of only reporting one session average.
+--
+-- The data was always in the FIT file and simply discarded: every
+-- `recordMesgs` entry from the Wahoo carries `speed`/`enhancedSpeed` (m/s,
+-- already scaled by the SDK) alongside the power/cadence that
+-- extractFitSamples in src/fit.ts did keep. Nothing new is being measured
+-- here — this column just stops throwing the field away.
+--
+-- Cadence needed no such change: `cycling_samples.cadence_rpm` has been
+-- populated since 0011 and was already being served by /api/cycling-samples;
+-- it was only ever missing from the *chart*.
+--
+-- NULL on 'watch' rows (the Apple Watch echo contributes HR only) and on any
+-- 'wahoo' row from a ride recorded without the field. Same sparse-by-source
+-- shape 0012 established — this is not a dense grid.
+--
+-- Why this pairs with moving time (0023): an average speed has to pick a
+-- denominator, and that migration documents at length how badly that goes
+-- when elapsed and timer time diverge. A per-second trace sidesteps the
+-- question — stopped time reads as a visible gap in the series rather than
+-- something silently folded into a single number.
+--
+-- REAL, not INTEGER: raw m/s, unrounded, converted to km/h at display time.
+-- Rounding to whole m/s would quantize a ride into ~3.6 km/h steps.
+--
+-- Derived data, same contract as `laps`/`route_points`: ingest deletes and
+-- rewrites, so the FIT_PARSER_VERSION bump that accompanies this migration
+-- backfills every archived ride on re-ingest from R2.
+ALTER TABLE cycling_samples ADD COLUMN speed_ms REAL;

@@ -4,6 +4,10 @@ This repo is a personal training data pipeline: workouts flow from fitness devic
 
 This file is the **agent-facing guide** — what this repo is, how to pull an athlete's own context before analyzing, and how to persist your output back through the app. It deliberately holds no athlete-specific data: the deployment is multi-user (see `app/ARCHITECTURE.md`'s multi-user model), so anything specific to one athlete — age, VO2max, HR zones, active sports, equipment, current training focus — lives in the app (Settings page / D1), fetched per-athlete via MCP, not hardcoded here. That keeps this file correct for whichever athlete is signed in, and keeps real personal data out of version control.
 
+## Before writing any code: sync with the remote
+
+`git fetch` and bring your branch up to date with `origin/main` before starting — a clean `git status` says nothing about whether the clone is current, and several sessions work this repo in parallel. Stale code merges *cleanly* at least as often as it conflicts, so conflicts aren't the risk to plan around. And `.github/workflows/deploy.yml` deploys both workers on every push to `main`, so a manual `npm run deploy` from a stale tree overwrites the live workers with old code — whatever your tree lacks, production loses. Prefer merging to `main` and letting CI deploy.
+
 ## Two ways a workout gets evaluated
 
 There are **two evaluators** writing to the same `session_evals` / `session_focus` tables, and they're meant for different jobs:
@@ -20,6 +24,7 @@ Before analyzing a workout, pull the *signed-in athlete's own* context via MCP �
 1. **`get_athlete_profile()`** — bio: age, VO2max/HR zones, active sports, equipment, anything else they've noted. Athlete-authored via Settings → Athlete profile.
 2. **`get_current_focus(sport)`** — the live forward-looking focus for that sport, if one's been set.
 3. **`get_recent_workouts` / `get_workout_detail` / `get_workout_history`** — the actual workout data.
+4. **`get_workout_samples(source_id, buckets?)`** — for cycling and running, the *within-session* time series (power, cadence, speed, HR per time window) behind those session averages. Reach for it whenever the question is about shape rather than totals: whether they faded in the back half, whether the intervals were even, whether a slow average came from stops or from riding slowly.
 
 If `get_athlete_profile()` comes back empty (a new athlete hasn't filled in Settings yet): ask them for the basics conversationally, and offer to draft a `profile_md` block for them to paste into Settings — don't invent one, and don't fall back to assumptions from a prior conversation or another athlete.
 
@@ -57,9 +62,14 @@ These are device/pipeline quirks — true for any athlete on this deployment, no
 - Rest detection: gaps >5s between consecutive `swimDistance` timestamps indicate wall rest. Sum active seconds excluding gaps; treat the gap as `rest_after` for the preceding lap.
 - Active time is what matters for pace; the Watch's "avg pace" field includes rest and is misleading.
 
-### Cycling (placeholder, refine when real data lands)
+### Cycling
 - FIT files include native lap markers — use them directly, no reconstruction needed.
 - Power data (W/kg) is the gold standard if a meter is present; HR-only is workable but noisier.
+- **Power, cadence and speed are recorded per second**; HR is not (see below). Read them with `get_workout_samples` when the question is about the shape of a ride rather than its totals.
+- **Speed may be GPS-derived, depending on what was connected that day.** A FIT file lists every sensor the head unit had paired for that ride in `deviceInfoMesgs`, so this is checkable per ride rather than assumed: an `antplusDeviceType` of `bikeSpeed` or `bikeSpeedCadence` means a wheel sensor fed the speed, and its absence means GPS did. On the reference ride (`test/fixtures/wahoo-ride.fit`, 2026-07-01) the paired list is GPS, barometer, temperature, accelerometer, Garmin radar, gear shifting and a Quarq power meter — **no speed sensor** — and speed is null for exactly the 122 of 789 seconds that also have no GPS fix, while power and cadence record through all 122. Don't generalize that one ride to the athlete's current bike; a wheel sensor added later would show up in the same place.
+- **A missing speed second is not a stopped second.** Whatever the source, when speed is absent but cadence is present the athlete was *riding* — read it as a sensor gap, never as a stop.
+- **Auto-pause means stops are absent, not zero.** The head unit records nothing while paused, so a stop is a hole in the timestamps. `get_workout_samples` reports those holes as `gap_sec`; the detail-page chart breaks the line across them. This is the per-second face of the elapsed-vs-moving-time split (`duration_sec` vs `moving_sec`) — see `migrations/0023_moving_time.sql` for why that split matters so much on this athlete's rides.
+- **HR on a ride comes from the Apple Watch, at ~5s**, merged in from its echo of the same session — while power/cadence/speed are ~1Hz. In a bucketed window the HR average therefore rests on ~1/5 as many readings as the sample count suggests.
 
 ### Running
 - No lap markers for this sport (HAE has none for running/walking).

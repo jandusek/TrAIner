@@ -104,6 +104,41 @@ test("real Wahoo FIT: per-second samples cover the ride at ~1Hz with no HR", () 
   for (let i = 1; i < samples.length; i++) assert.ok(samples[i].t >= samples[i - 1].t);
 });
 
+test("real Wahoo FIT: per-second samples carry speed in m/s, minus GPS dropouts", () => {
+  const { samples } = parseFitWorkout("wahoo:test", arrayBuffer);
+  const withSpeed = samples.filter((s) => s.speed_ms != null);
+
+  // Speed is NOT universally present. This ride's `deviceInfoMesgs` lists
+  // every sensor the head unit had paired — GPS, barometer, temperature,
+  // accelerometer, a Garmin radar, gear shifting and a Quarq power meter —
+  // with no `bikeSpeed`/`bikeSpeedCadence` entry, so speed here comes from
+  // GPS and dies with the fix. The record data agrees exactly: 122 of 789
+  // records have no speed, and all 122 also have no positionLat/Long. They
+  // fall in three contiguous runs (the first 52 s before lock, then two
+  // blocks in the closing minutes), and all 122 still carry power AND
+  // cadence — which is why extractFitSamples must not drop a record for
+  // missing speed alone.
+  //
+  // This is a fact about THIS ride, not about the bike: pairing a wheel
+  // speed sensor would add it to deviceInfoMesgs and keep speed alive
+  // through GPS dropouts. Re-check the device list before assuming a newer
+  // ride behaves the same way.
+  assert.equal(samples.length, 789);
+  assert.equal(withSpeed.length, 667);
+
+  for (const s of withSpeed) assert.ok(s.speed_ms >= 0 && s.speed_ms < 30, `implausible speed ${s.speed_ms}`);
+
+  // Scale check — that these are m/s, not km/h and not a raw unscaled field.
+  // Deliberately NOT compared against the session's own avgSpeed (5.278 m/s):
+  // the trace's mean over recorded seconds runs meaningfully higher (~6.07)
+  // because the dropped seconds are disproportionately the slow ones — the
+  // rolling start and the end-of-ride crawl are where the fix is weakest.
+  // That divergence is the same measurement-method gap 0023_moving_time.sql
+  // documents, so assert the band, not the equality.
+  const mean = withSpeed.reduce((a, s) => a + s.speed_ms, 0) / withSpeed.length;
+  assert.ok(mean > 4 && mean < 9, `mean ${mean} m/s is outside a plausible commute band`);
+});
+
 test("real Wahoo FIT: route points carry real lat/lon (GPS-fixed outdoor ride)", () => {
   const { route } = parseFitWorkout("wahoo:test", arrayBuffer);
   assert.ok(route.length > 0);

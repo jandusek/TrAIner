@@ -29,15 +29,16 @@ import type { Lap } from "./laps";
 import { SEMICIRCLE_TO_DEG, isValidLatLon, type RoutePoint } from "./route";
 
 // Bump when the parsed output shape changes (power/cadence + per-second
-// samples added here), so a re-ingest from R2 repopulates D1 — same signal as
-// parse.ts's PARSER_VERSION.
-export const FIT_PARSER_VERSION = "fit-2026-07-02c";
+// samples added here; 2026-08-24: per-second speed too), so a re-ingest from
+// R2 repopulates D1 — same signal as parse.ts's PARSER_VERSION.
+export const FIT_PARSER_VERSION = "fit-2026-08-24a";
 
-/** One second of power/cadence from a Wahoo FIT `recordMesgs` entry. */
-export interface PowerCadenceSample {
+/** One second of power/cadence/speed from a Wahoo FIT `recordMesgs` entry. */
+export interface RideSample {
   t: number; // unix epoch seconds, UTC
   power_w: number | null;
   cadence_rpm: number | null;
+  speed_ms: number | null; // meters/second, as FIT reports it — converted to km/h at display time
 }
 
 // FIT timestamps are UTC and Wahoo doesn't send the athlete's local offset, so
@@ -71,7 +72,7 @@ function toSportString(v: Types.Sport | Types.SubSport | undefined): string | un
 export function parseFitWorkout(
   sourceId: string,
   buf: ArrayBuffer,
-): { summary: WorkoutSummary; laps: Lap[]; route: RoutePoint[]; samples: PowerCadenceSample[] } {
+): { summary: WorkoutSummary; laps: Lap[]; route: RoutePoint[]; samples: RideSample[] } {
   const stream = Stream.fromArrayBuffer(buf);
   const decoder = new Decoder(stream);
   const { messages, errors } = decoder.read();
@@ -147,18 +148,25 @@ export function parseFitWorkout(
 }
 
 /**
- * Per-second power/cadence from FIT `recordMesgs`, for the power+HR-zone
- * overlay chart and decoupling calc (see migrations/0011_cycling_power.sql).
- * Records with neither field (e.g. a brief sensor dropout) are skipped rather
- * than stored as an all-null row.
+ * Per-second power/cadence/speed from FIT `recordMesgs`, for the power+HR-zone
+ * overlay chart, the speed/cadence chart, and the decoupling calc (see
+ * migrations/0011_cycling_power.sql and 0026_cycling_speed_samples.sql).
+ * Records with none of the three (e.g. a brief sensor dropout) are skipped
+ * rather than stored as an all-null row.
+ *
+ * `enhancedSpeed` wins over `speed` where both are present, same precedence as
+ * enhancedAltitude in extractFitRoute below: the enhanced variants are wider
+ * fields added to carry values the originals would overflow, and the two agree
+ * exactly whenever the original is in range.
  */
-function extractFitSamples(records: RecordMesg[]): PowerCadenceSample[] {
-  const out: PowerCadenceSample[] = [];
+function extractFitSamples(records: RecordMesg[]): RideSample[] {
+  const out: RideSample[] = [];
   for (const r of records) {
-    if (r.power == null && r.cadence == null) continue;
+    const speed = r.enhancedSpeed ?? r.speed ?? null;
+    if (r.power == null && r.cadence == null && speed == null) continue;
     const t = toEpochSeconds(r.timestamp);
     if (t === undefined) continue;
-    out.push({ t, power_w: r.power ?? null, cadence_rpm: r.cadence ?? null });
+    out.push({ t, power_w: r.power ?? null, cadence_rpm: r.cadence ?? null, speed_ms: speed });
   }
   return out;
 }

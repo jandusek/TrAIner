@@ -412,3 +412,175 @@ export async function listPersonalBests(
 
   return { sport, workouts_counted: count?.n ?? 0, bests };
 }
+
+/** One time window of a workout's sample stream, as returned by
+ * `getWorkoutSamples`. Fields a sport doesn't record stay null. */
+export interface SampleBucket {
+  /** Seconds from the first sample of the session. */
+  at_sec: number;
+  avg_power_w: number | null;
+  max_power_w: number | null;
+  avg_cadence_rpm: number | null;
+  avg_speed_kmh: number | null;
+  avg_hr: number | null;
+  /** Raw samples that landed in this window — a low count means a sparse
+   * or partially-dropped-out window, not necessarily a short one. */
+  n: number;
+}
+
+export interface WorkoutSamples {
+  source_id: string;
+  sport: string;
+  bucket_sec: number;
+  buckets: SampleBucket[];
+  /** Windows with no samples at all, as `at_sec` offsets. On a ride these
+   * are the auto-paused stops (the head unit records nothing while paused),
+   * which is the one thing a bucket list would otherwise hide — an empty
+   * window and a slow window must not look alike. */
+  gap_sec: number[];
+  notes: string[];
+}
+
+// Enough windows to show the shape of a session (surges, a fade, a climb)
+// without turning a tool response into a per-second dump: a 1-hour ride at
+// this default is one point per 90s. Callers wanting finer detail on a
+// specific stretch raise it.
+const DEFAULT_BUCKETS = 40;
+const MAX_BUCKETS = 200;
+
+function round(v: number | null, dp: number): number | null {
+  if (v == null) return null;
+  const f = 10 ** dp;
+  return Math.round(v * f) / f;
+}
+
+/**
+ * Per-window time series for one workout — the within-session detail the
+ * summary tools flatten into single averages.
+ *
+ * Bucketed in SQL rather than fetched raw: a 3-hour ride is ~11k rows at
+ * 1 Hz, and no analysis reads them one second at a time. The aggregation is
+ * AVG over whatever landed in each window, so a window is only as
+ * trustworthy as its `n`.
+ *
+ * Sources by sport (see the app's migrations for each):
+ *   cycling — `cycling_samples`: power/cadence/speed from the Wahoo FIT,
+ *             HR from the Apple Watch echo merged in at ingest.
+ *   running — `running_cadence_samples` (derived from HAE stepCount deltas,
+ *             approximate) and `running_hr_samples`.
+ * Every other sport has no per-time stream and returns zero buckets.
+ */
+export async function getWorkoutSamples(
+  db: D1Database,
+  userId: string,
+  sourceId: string,
+  bucketCount?: number,
+): Promise<WorkoutSamples | null> {
+  const w = await db
+    .prepare("SELECT id, sport FROM workouts WHERE user_id = ? AND source_id = ?")
+    .bind(userId, sourceId)
+    .first<{ id: string; sport: string }>();
+  if (!w) return null;
+
+  const n = Math.min(MAX_BUCKETS, Math.max(1, Math.round(bucketCount ?? DEFAULT_BUCKETS)));
+  const notes: string[] = [];
+
+  const tables =
+    w.sport === "cycling"
+      ? ["cycling_samples"]
+      : w.sport === "running"
+        ? ["running_cadence_samples", "running_hr_samples"]
+        : [];
+  if (tables.length === 0) {
+    return { source_id: sourceId, sport: w.sport, bucket_sec: 0, buckets: [], gap_sec: [], notes: [`${w.sport} records no per-time sample stream.`] };
+  }
+
+  // Span across every contributing table, so running's cadence and HR streams
+  // share one origin and one window width and their buckets line up.
+  const spans = await Promise.all(
+    tables.map((t) =>
+      db.prepare(`SELECT MIN(t) AS lo, MAX(t) AS hi FROM ${t} WHERE workout_id = ?`).bind(w.id).first<{ lo: number | null; hi: number | null }>(),
+    ),
+  );
+  const los = spans.map((s) => s?.lo).filter((v): v is number => v != null);
+  const his = spans.map((s) => s?.hi).filter((v): v is number => v != null);
+  if (los.length === 0) {
+    return { source_id: sourceId, sport: w.sport, bucket_sec: 0, buckets: [], gap_sec: [], notes: ["No samples stored for this workout."] };
+  }
+  const t0 = Math.min(...los);
+  const span = Math.max(1, Math.max(...his) - t0);
+  const width = Math.max(1, Math.ceil(span / n));
+
+  const byBucket = new Map<number, SampleBucket>();
+  const at = (b: number): SampleBucket => {
+    let row = byBucket.get(b);
+    if (!row) {
+      row = { at_sec: b * width, avg_power_w: null, max_power_w: null, avg_cadence_rpm: null, avg_speed_kmh: null, avg_hr: null, n: 0 };
+      byBucket.set(b, row);
+    }
+    return row;
+  };
+
+  if (w.sport === "cycling") {
+    const rows = await db
+      .prepare(
+        `SELECT CAST((t - ?) / ? AS INTEGER) AS b,
+                AVG(power_w) AS p, MAX(power_w) AS pmax, AVG(cadence_rpm) AS c,
+                AVG(speed_ms) AS s, AVG(hr) AS h, COUNT(*) AS n
+           FROM cycling_samples WHERE workout_id = ?
+          GROUP BY b ORDER BY b`,
+      )
+      .bind(t0, width, w.id)
+      .all<{ b: number; p: number | null; pmax: number | null; c: number | null; s: number | null; h: number | null; n: number }>();
+    for (const r of rows.results ?? []) {
+      const row = at(r.b);
+      row.avg_power_w = round(r.p, 0);
+      row.max_power_w = r.pmax;
+      row.avg_cadence_rpm = round(r.c, 0);
+      row.avg_speed_kmh = round(r.s == null ? null : r.s * 3.6, 1);
+      row.avg_hr = round(r.h, 0);
+      row.n = r.n;
+    }
+    notes.push(
+      "Speed comes from a wheel sensor when one was paired for that ride and from GPS otherwise, in which case it goes " +
+        "null wherever the fix drops — typically the first minute before lock. Either way, a window with speed null but " +
+        "cadence present was ridden, not stopped.",
+    );
+    notes.push("HR comes from the Apple Watch at ~5s intervals while power/cadence are ~1Hz, so avg_hr rests on far fewer samples than `n` suggests.");
+  } else {
+    const cad = await db
+      .prepare(
+        `SELECT CAST((t - ?) / ? AS INTEGER) AS b, AVG(cadence_spm) AS c, COUNT(*) AS n
+           FROM running_cadence_samples WHERE workout_id = ? GROUP BY b ORDER BY b`,
+      )
+      .bind(t0, width, w.id)
+      .all<{ b: number; c: number | null; n: number }>();
+    for (const r of cad.results ?? []) {
+      const row = at(r.b);
+      row.avg_cadence_rpm = round(r.c, 0);
+      row.n += r.n;
+    }
+    const hr = await db
+      .prepare(
+        `SELECT CAST((t - ?) / ? AS INTEGER) AS b, AVG(hr) AS h, COUNT(*) AS n
+           FROM running_hr_samples WHERE workout_id = ? GROUP BY b ORDER BY b`,
+      )
+      .bind(t0, width, w.id)
+      .all<{ b: number; h: number | null; n: number }>();
+    for (const r of hr.results ?? []) {
+      const row = at(r.b);
+      row.avg_hr = round(r.h, 0);
+      row.n += r.n;
+    }
+    notes.push("Running cadence is reconstructed from HAE stepCount deltas, not read from a device field — treat it as approximate.");
+    notes.push("No per-time speed/pace stream exists for running yet; only session-level distance and duration.");
+  }
+
+  const buckets = [...byBucket.values()].sort((a, b) => a.at_sec - b.at_sec);
+  const present = new Set(buckets.map((b) => b.at_sec / width));
+  const gap_sec: number[] = [];
+  const lastBucket = Math.floor(span / width);
+  for (let b = 0; b <= lastBucket; b++) if (!present.has(b)) gap_sec.push(b * width);
+
+  return { source_id: sourceId, sport: w.sport, bucket_sec: width, buckets, gap_sec, notes };
+}

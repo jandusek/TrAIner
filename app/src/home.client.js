@@ -1,10 +1,118 @@
 // Home page — workout logbook. React (no build) via htm + esm.sh; Phosphor icons.
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { html } from "htm/react";
 import * as Ph from "@phosphor-icons/react";
 
 const BOOT = JSON.parse(document.getElementById("bootstrap").textContent);
+
+
+/* ── HDR chrome ────────────────────────────────────────────────────────────
+   CSS colour is gamut-mapped into SDR — it cannot exceed paper white. Only
+   real HDR *content* can, and of the content types only video actually gets
+   headroom (HDR PNGs were tested on-device and do not). So the brand gradient
+   is shipped as a 717-byte Rec.2020 PQ video, peaking at 500 nits, and the
+   elements that glow each mount their own copy.
+
+   Rendered as JSX rather than injected into the DOM: React owns these
+   subtrees, and a node appended by hand would be discarded on the next
+   re-render (the active pill re-renders on every filter click).
+
+   ui.css gates all of it behind `@media (dynamic-range: high)` — on an SDR
+   display the videos never render and the CSS gradients stand unchanged. */
+const themeKey = () => document.documentElement.dataset.theme || "illuminate";
+/* Peak luminance is user-set; "off" is handled in CSS so the element stays
+   mounted and toggling costs nothing. */
+const hdrNits = () => {
+  const v = document.documentElement.dataset.hdr;
+  return v && v !== "off" ? v : "500";
+};
+/* One asset per nit level, shared by every theme — the colour comes from
+   .glow-tint in CSS, not from the video. */
+const glowSrc = (nits) => {
+  const k = `white@${nits || hdrNits()}`;
+  return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
+};
+
+function HdrGlow({ className, nits }) {
+  return html`<span class=${`hdrglow ${className}`}>
+    <video
+      class="hdrglow-vid"
+      src=${glowSrc(nits)}
+      autoPlay
+      muted
+      loop
+      playsInline
+      aria-hidden="true"
+    />
+    <span class="hdrglow-tint"></span>
+  </span>`;
+}
+
+/* The "AI" glows by masking the same video to a text shape. The mask is drawn
+   on a canvas using the element's own resolved font — an SVG <text> mask would
+   render in a fallback face, because an SVG mask cannot see the page's
+   webfonts, and would sit misaligned over the real glyphs. */
+function useAiMask(nameRef, aiRef, layerRef) {
+  useEffect(() => {
+    function build() {
+      const name = nameRef.current, ai = aiRef.current, layer = layerRef.current;
+      if (!name || !ai || !layer) return;
+      const cs = getComputedStyle(name);
+      // Fractional box, not offsetWidth/Height: those round to integers, which
+      // would stretch the mask against the real layout box.
+      const nb = name.getBoundingClientRect();
+      const ab = ai.getBoundingClientRect();
+      const w = nb.width, h = nb.height;
+      if (!w || !h) return;
+
+      // Both axes are MEASURED, not derived. Deriving the baseline by centring
+      // the font's bounding box in the line box is only an approximation of
+      // how a browser lays out a line, and it drifts whenever a font's
+      // reported ascent/descent differ from the metrics used for layout —
+      // which is what pushed the "AI" off the baseline of the word around it.
+      // A zero-height inline-block sits exactly on the baseline, so the DOM
+      // can just be asked where it is.
+      const probe = document.createElement("span");
+      probe.style.cssText =
+        "display:inline-block;width:0;height:0;vertical-align:baseline";
+      name.appendChild(probe);
+      const baseline = probe.getBoundingClientRect().top - nb.top;
+      probe.remove();
+      // x likewise comes from the span's own rect rather than from
+      // measureText("Tr"), so kerning and letter-spacing cannot disagree.
+      const x = ab.left - nb.left;
+
+      // The glyph becomes an alpha bitmap, not text, so it can never match the
+      // hinted, subpixel-antialiased "Tr"/"ner" beside it — but it can get
+      // close. The mask is supersampled well past device pixels; the element
+      // is ~80x21 CSS px, so even 8x is a trivial canvas (~640x170).
+      const S = Math.min(8, (window.devicePixelRatio || 1) * 4);
+      const cv = document.createElement("canvas");
+      cv.width = Math.ceil(w * S); cv.height = Math.ceil(h * S);
+      const c = cv.getContext("2d");
+      c.scale(S, S);
+      c.font = cs.font || `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      if ("letterSpacing" in c) c.letterSpacing = cs.letterSpacing;
+      c.textBaseline = "alphabetic";
+      c.fillStyle = "#fff";
+      c.fillText("AI", x, baseline);
+      const url = `url("${cv.toDataURL("image/png")}")`;
+      layer.style.webkitMaskImage = url; layer.style.maskImage = url;
+      layer.style.webkitMaskRepeat = layer.style.maskRepeat = "no-repeat";
+      // exact canvas-pixel mapping — "100% 100%" would rescale by the ceil()
+      layer.style.webkitMaskSize = layer.style.maskSize =
+        `${cv.width / S}px ${cv.height / S}px`;
+      layer.style.webkitMaskPosition = layer.style.maskPosition = "0 0";
+      ai.classList.add("is-hdr");
+    }
+    build();
+    addEventListener("resize", build);
+    // a webfont landing after first paint would leave a stale mask
+    if (document.fonts?.ready) document.fonts.ready.then(build);
+    return () => removeEventListener("resize", build);
+  }, []);
+}
 
 /* ── icon helpers ─────────────────────────────────────────────────────────── */
 // Resolve Phosphor icons by name with a graceful fallback so a wrong name never
@@ -187,6 +295,9 @@ function SportFilter({ sports, total, active, onSelect }) {
             class=${`filterchip ${active === it.sport ? "is-active" : ""}`}
             onClick=${() => onSelect(it.sport)}
           >
+            ${active === it.sport
+              ? html`<${HdrGlow} className="chip-hdr" />`
+              : null}
             <${I} name=${it.icon} size=${14} weight="bold" />${it.label}
             <span class="filterchip__count">${it.count}</span>
           </button>
@@ -255,6 +366,7 @@ function AddFab() {
       onClick=${() => setOpen((o) => !o)}
       aria-label=${open ? "Close" : "Add a workout"}
     >
+      <${HdrGlow} className="btn-hdr" />
       <${I} name="Plus" size=${24} weight="bold" />
     </button>
   `;
@@ -333,15 +445,28 @@ function App() {
 
   const allCount = state.sports.reduce((sum, s) => sum + s.c, 0);
 
+  // HDR wordmark: the "AI" is lit by masking the brand video to a canvas-drawn
+  // text shape (see useAiMask). No-op on SDR displays — ui.css gates the layer.
+  const nameRef = useRef(null);
+  const aiRef = useRef(null);
+  const aiLayerRef = useRef(null);
+  useAiMask(nameRef, aiRef, aiLayerRef);
+
   return html`
     <div class="wrap">
       <header class="topbar">
         <div class="brand">
           <div class="brand__mark">
+            <${HdrGlow} className="mark-hdr" />
             <${I} name="Waveform" size=${22} weight="bold" />
           </div>
           <div>
-            <div class="brand__name">Tr<span class="brand__ai">AI</span>ner</div>
+            <div class="brand__name" ref=${nameRef}>
+              Tr<span class="brand__ai" ref=${aiRef}>AI</span>ner
+              <span class="name-hdr" ref=${aiLayerRef}>
+                <${HdrGlow} className="" />
+              </span>
+            </div>
             <div class="brand__sub">Logbook</div>
           </div>
         </div>

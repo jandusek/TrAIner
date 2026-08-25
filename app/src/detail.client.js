@@ -6,6 +6,12 @@ import { html } from "htm/react";
 import * as Ph from "@phosphor-icons/react";
 import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
+
+/* Read a theme token. Must sit above every module-level consumer: the
+   Highcharts theme literal below is evaluated at module scope, so declaring
+   this further down left it in the temporal dead zone. */
+const cssVar = (n) =>
+  getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 // MapLibre GL is loaded as UMD via a <script> in the page shell (see index.ts);
 // grab it off the global rather than importing (its worker breaks under esm.sh).
 const maplibregl = window.maplibregl;
@@ -13,9 +19,18 @@ const maplibregl = window.maplibregl;
 // charts, so hovering shows exact values instead of reading an SVG by eye.
 const Highcharts = window.Highcharts;
 
-// One-time dark theme matching the page's own palette (ui.css's :root vars —
-// Highcharts can't read CSS custom properties itself, so these are the same
-// hex values copied over by hand; keep in sync if the palette changes).
+/* A colour, dimmed. Highcharts' own colour class does the mixing because it
+   understands every notation a theme token can arrive in — including the
+   color(display-p3 …) form the accent family takes on wide-gamut browsers,
+   which it hands to CSS color-mix() rather than dropping. (MapLibre has no
+   such fallback, hence the separate srgb() round-trip further down.) */
+const fade = (color, alpha) => Highcharts.color(color).setOpacity(alpha).get();
+
+// One-time dark theme, read from the page's own palette. Highcharts can't
+// resolve CSS custom properties itself, so each value is pulled through
+// cssVar at module scope — after the shell's inline script has set
+// data-theme, so what lands here is the athlete's chosen theme, not a copy
+// of one theme's hexes.
 Highcharts.setOptions({
   chart: {
     backgroundColor: "transparent",
@@ -29,32 +44,34 @@ Highcharts.setOptions({
   },
   title: { text: undefined },
   credits: { enabled: false },
-  colors: ["#2fe0c0", "#ff7d68", "#ffce73"],
+  // Series fallback for any chart that doesn't name its own colour: the
+  // theme's accent, its heart-rate/effort hue, then the second accent.
+  colors: [cssVar("--accent"), cssVar("--hot"), cssVar("--accent-2")],
   xAxis: {
-    lineColor: "rgba(126, 176, 168, 0.24)",
-    tickColor: "rgba(126, 176, 168, 0.24)",
+    lineColor: cssVar("--line-2"),
+    tickColor: cssVar("--line-2"),
     tickLength: 2,
     // 11.5px meets the zonebar labels (0.77rem ≈ 11.5px) in the middle of
     // Highcharts' own default (12.8px) — the two chart types sit side by
     // side in a split-row, so their type scale should match.
-    labels: { style: { color: "#91a8a2", fontSize: "11.5px" }, y: 14 },
+    labels: { style: { color: cssVar("--muted"), fontSize: "11.5px" }, y: 14 },
     // Visible on every chart, not just synced ones — a vertical marker at
     // the hovered instant reads naturally even solo, and is exactly what
     // cross-chart sync (see useChart's `sync` option) drives on the other
     // charts in a group.
-    crosshair: { color: "rgba(233, 242, 239, 0.25)", width: 1, dashStyle: "Dash" },
+    crosshair: { color: fade(cssVar("--text"), 0.25), width: 1, dashStyle: "Dash" },
   },
   yAxis: {
-    gridLineColor: "rgba(126, 176, 168, 0.12)",
+    gridLineColor: cssVar("--line"),
     tickLength: 0,
-    labels: { style: { color: "#91a8a2", fontSize: "11.5px" }, x: -2 },
-    title: { style: { color: "#91a8a2" } },
+    labels: { style: { color: cssVar("--muted"), fontSize: "11.5px" }, x: -2 },
+    title: { style: { color: cssVar("--muted") } },
   },
-  legend: { itemStyle: { color: "#e9f2ef" }, itemHoverStyle: { color: "#2fe0c0" } },
+  legend: { itemStyle: { color: cssVar("--text") }, itemHoverStyle: { color: cssVar("--accent") } },
   tooltip: {
-    backgroundColor: "#0d1618",
-    borderColor: "rgba(126, 176, 168, 0.24)",
-    style: { color: "#e9f2ef" },
+    backgroundColor: cssVar("--surface"),
+    borderColor: cssVar("--line-2"),
+    style: { color: cssVar("--text") },
   },
   plotOptions: {
     series: { animation: false, marker: { enabled: false } },
@@ -206,6 +223,7 @@ function useChart(getOptions, deps, opts = {}) {
 }
 
 const BOOT = JSON.parse(document.getElementById("bootstrap").textContent);
+
 const SID = BOOT.sourceId;
 
 const EQUIPMENT = [
@@ -378,6 +396,39 @@ function evalAuthorLabel(generatedBy) {
   return generatedBy.split("/").pop(); // fallback: last path segment of the id
 }
 
+
+/* HDR glow — see home.client.js for the reasoning. Only CTAs that are already
+   the accent gradient get one: they are the single primary action on the page,
+   so this stays one video each rather than one per row. */
+const themeKey = () => document.documentElement.dataset.theme || "illuminate";
+/* Peak luminance is user-set; "off" is handled in CSS so the element stays
+   mounted and toggling costs nothing. */
+const hdrNits = () => {
+  const v = document.documentElement.dataset.hdr;
+  return v && v !== "off" ? v : "500";
+};
+/* One asset per nit level, shared by every theme — the colour comes from
+   .glow-tint in CSS, not from the video. */
+const glowSrc = (nits) => {
+  const k = `white@${nits || hdrNits()}`;
+  return `/glow/${encodeURIComponent(k)}.webm?v=${(window.__GLOW_VER || {})[k] || ""}`;
+};
+
+function HdrGlow({ className, nits }) {
+  return html`<span class=${`hdrglow ${className}`}>
+    <video
+      class="hdrglow-vid"
+      src=${glowSrc(nits)}
+      autoPlay
+      muted
+      loop
+      playsInline
+      aria-hidden="true"
+    />
+    <span class="hdrglow-tint"></span>
+  </span>`;
+}
+
 function Evaluation({ ev, onGenerate, generating, error, stale }) {
   const btnLabel = generating
     ? "Generating…"
@@ -390,6 +441,7 @@ function Evaluation({ ev, onGenerate, generating, error, stale }) {
       disabled=${generating}
       onClick=${onGenerate}
     >
+      ${!ev && !generating ? html`<${HdrGlow} className="btn-hdr" />` : null}
       <${I} name="Sparkle" size=${13} weight="fill" />${btnLabel}
     </button>
   `;
@@ -457,6 +509,27 @@ function Focus({ focus }) {
 // fetch entirely for them (matches the ROUTE_SPORTS gate on the server).
 const ROUTE_SPORTS = new Set(["cycling", "running"]);
 
+/* Theme token → a colour MapLibre can actually parse.
+
+   The style spec's parser only understands sRGB notations (hex, rgb(), hsl(),
+   named colours). Our accent family is redeclared as color(display-p3 …) on
+   wide-gamut browsers (see ui.css's @supports blocks), which it rejects — and
+   a rejected paint value fails the whole style, not just that layer. So paint
+   the token onto a 1×1 sRGB canvas and read the pixel back: the browser clips
+   to sRGB and we hand MapLibre a plain rgba(). The clip is the honest answer
+   anyway — MapLibre draws into an untagged (sRGB) WebGL canvas, so it could
+   not show the wider primaries whatever we passed it. Alpha survives the
+   round-trip (getImageData is unpremultiplied), so a token that carries
+   transparency keeps it. */
+function srgb(value) {
+  const ctx = document.createElement("canvas").getContext("2d");
+  ctx.fillStyle = value;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+  return `rgba(${r}, ${g}, ${b}, ${(a / 255).toFixed(3)})`;
+}
+const mapColor = (name) => srgb(cssVar(name));
+
 // Custom MapLibre vector style, keyed to the app palette so the basemap is part
 // of the design system rather than a stock theme. Vector tiles from OpenFreeMap
 // (keyless, OSM data, OpenMapTiles schema). Deliberately minimal — land, water,
@@ -464,54 +537,60 @@ const ROUTE_SPORTS = new Set(["cycling", "running"]);
 // stays the hero.
 //   water = --surface  → matches the power-zones card background (by request)
 //   land  = --surface-2 → a hair lighter, so landmass reads against the water
-//   roads = faint --line-ish teal-grey
-const MAP_COLORS = {
-  land: "#111c21",
-  water: "#0e1519",
-  road: "rgba(126,176,168,0.20)",
-};
-const MAP_STYLE = {
-  version: 8,
-  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
-  sources: {
-    ofm: { type: "vector", url: "https://tiles.openfreemap.org/planet" },
-  },
-  layers: [
-    {
-      id: "land",
-      type: "background",
-      paint: { "background-color": MAP_COLORS.land },
+//   roads = --hot at a low opacity → keeps the basemap theme-aware without
+//           echoing the route. It was briefly a faint --accent, which put the
+//           road web and the route on one hue and left the accent marking
+//           nothing in particular; --hot is a family over, so the two read
+//           apart at any theme.
+//
+// Built as a function, not a module-level literal: every colour is read from
+// the live theme tokens, and a literal would freeze whichever theme happened to
+// be active when this module first evaluated.
+function mapStyle() {
+  return {
+    version: 8,
+    glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+    sources: {
+      ofm: { type: "vector", url: "https://tiles.openfreemap.org/planet" },
     },
-    {
-      id: "water",
-      type: "fill",
-      source: "ofm",
-      "source-layer": "water",
-      paint: { "fill-color": MAP_COLORS.water },
-    },
-    {
-      id: "roads",
-      type: "line",
-      source: "ofm",
-      "source-layer": "transportation",
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": MAP_COLORS.road,
-        "line-width": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          0.4,
-          14,
-          1.2,
-          18,
-          3,
-        ],
+    layers: [
+      {
+        id: "land",
+        type: "background",
+        paint: { "background-color": mapColor("--surface-2") },
       },
-    },
-  ],
-};
+      {
+        id: "water",
+        type: "fill",
+        source: "ofm",
+        "source-layer": "water",
+        paint: { "fill-color": mapColor("--surface") },
+      },
+      {
+        id: "roads",
+        type: "line",
+        source: "ofm",
+        "source-layer": "transportation",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": mapColor("--hot"),
+          "line-opacity": 0.18,
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            9,
+            0.4,
+            14,
+            1.2,
+            18,
+            3,
+          ],
+        },
+      },
+    ],
+  };
+}
 
 function RouteMap({ sport }) {
   const elRef = useRef(null);
@@ -561,7 +640,7 @@ function RouteMap({ sport }) {
     ];
     const map = new maplibregl.Map({
       container: elRef.current,
-      style: MAP_STYLE,
+      style: mapStyle(),
       attributionControl: false,
       // Fit the whole track on load — no manual view math; MapLibre tracks the
       // container size itself (ResizeObserver), so no invalidateSize dance.
@@ -592,7 +671,11 @@ function RouteMap({ sport }) {
         source: "route",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": "#2fe0c0",
+          // The accent. The route is the one thing this card exists to show,
+          // so it takes the theme's primary rather than the quieter --hot the
+          // trace used to carry — the faint accent wash on the roads reads as
+          // the same light, turned down.
+          "line-color": mapColor("--accent"),
           "line-width": 4,
           "line-opacity": 0.95,
         },
@@ -624,15 +707,20 @@ function RouteMap({ sport }) {
         source: "ends",
         paint: {
           "circle-radius": 6,
+          // Both ends must stay separable from the route and from each other,
+          // so neither can reuse the line's colour — which is now --accent,
+          // so start moves to --hot. That leaves the three marks on the three
+          // hues every theme is required to own.
           "circle-color": [
             "match",
             ["get", "role"],
             "finish",
-            "#ff7d68",
-            "#2fe0c0",
+            mapColor("--accent-2"),
+            mapColor("--hot"),
           ],
           "circle-stroke-width": 2,
-          "circle-stroke-color": "#04211b",
+          // Page ground, so the ring reads as a cut-out at any theme.
+          "circle-stroke-color": mapColor("--bg"),
         },
       });
     });
@@ -680,25 +768,19 @@ function haversine(a, b) {
 
 /* ── cycling power: zone bars, power+HR chart, aerobic decoupling ──────────── */
 // Athlete's HR zones (see CLAUDE.md — Apple Watch defaults, refined over time).
+// Zone colours live in the theme (see ui.css --z1..--z5, --pz1..--pz7) so the
+// scales re-derive per theme instead of being pinned to one palette.
 const HR_ZONES = [
-  { label: "Z1 Recovery", low: 0, high: 130, color: "#4a90a4" },
-  { label: "Z2 Aerobic", low: 130, high: 141, color: "#2fe0c0" },
-  { label: "Z3 Tempo", low: 141, high: 153, color: "#ffce73" },
-  { label: "Z4 Threshold", low: 153, high: 164, color: "#ff9d5c" },
-  { label: "Z5 VO2max", low: 164, high: 200, color: "#ff7d68" },
+  { label: "Z1 Recovery", low: 0, high: 130, color: cssVar("--z1") },
+  { label: "Z2 Aerobic", low: 130, high: 141, color: cssVar("--z2") },
+  { label: "Z3 Tempo", low: 141, high: 153, color: cssVar("--z3") },
+  { label: "Z4 Threshold", low: 153, high: 164, color: cssVar("--z4") },
+  { label: "Z5 VO2max", low: 164, high: 200, color: cssVar("--z5") },
 ];
-// Cool → hot gradient across a Coggan-style 7-zone power split (Active
+// Cool → bright gradient across a Coggan-style 7-zone power split (Active
 // Recovery through Neuromuscular). Independent of HR_ZONES — power and HR
 // zones don't share a boundary scheme, so no attempt is made to align them.
-const POWER_ZONE_COLORS = [
-  "#4a90a4",
-  "#2fe0c0",
-  "#8fd97a",
-  "#ffce73",
-  "#ff9d5c",
-  "#ff7d68",
-  "#e8497a",
-];
+const POWER_ZONE_COLORS = [1,2,3,4,5,6,7].map((i) => cssVar(`--pz${i}`));
 
 function PowerZones({ zonesJson }) {
   let zones;
@@ -875,7 +957,7 @@ function StrokeDriftChart({ drift }) {
           {
             name: "Strokes / lap",
             data: drift.strokes,
-            color: "#2fe0c0",
+            color: cssVar("--accent"),
             marker: { enabled: true, radius: 3 },
           },
         ],
@@ -1086,13 +1168,17 @@ function PowerHrChart({ samples }) {
           {
             title: { text: undefined },
             opposite: true,
-            plotBands: HR_ZONES.map((z) => ({ from: z.low, to: z.high, color: `${z.color}0f` })),
+            // A wash, not a fill — the bands orient the eye without competing
+            // with the traces. fade() rather than appending an alpha pair to
+            // the hex: that only works while every zone token happens to be
+            // 6-digit hex, and silently produces garbage the day one isn't.
+            plotBands: HR_ZONES.map((z) => ({ from: z.low, to: z.high, color: fade(z.color, 0.06) })),
           },
         ],
         tooltip: { shared: true, formatter: rideTooltipFormatter },
         series: [
-          { name: "Power (W)", data: powers, yAxis: 0, color: "#2fe0c0", fillOpacity: 0.12, type: "area" },
-          { name: "Heart rate (bpm)", data: hrs, yAxis: 1, color: "#ff7d68" },
+          { name: "Power (W)", data: powers, yAxis: 0, color: cssVar("--accent"), fillOpacity: 0.12, type: "area" },
+          { name: "Heart rate (bpm)", data: hrs, yAxis: 1, color: cssVar("--hot") },
         ],
       };
     },
@@ -1181,10 +1267,11 @@ function SpeedCadenceChart({ samples }) {
         ],
         tooltip: { shared: true, formatter: rideTooltipFormatter },
         series: [
-          { name: "Speed (km/h)", data: speeds, yAxis: 0, color: "#ffce73", fillOpacity: 0.14, type: "area", custom: { dp: 1 } },
-          // Muted blue against the gold — the same Z1 blue the HR-zone
-          // palette uses, so the page keeps one set of hues.
-          { name: "Cadence (rpm)", data: cadences, yAxis: 1, color: "#4a90a4" },
+          // Palette tokens, not fixed hex: the four themes (see ui.css)
+          // re-derive every chart colour, and --accent/--hot are already
+          // spoken for by power and HR on the chart above.
+          { name: "Speed (km/h)", data: speeds, yAxis: 0, color: cssVar("--gold"), fillOpacity: 0.14, type: "area", custom: { dp: 1 } },
+          { name: "Cadence (rpm)", data: cadences, yAxis: 1, color: cssVar("--accent-2") },
         ],
       };
     },
@@ -1369,6 +1456,17 @@ function CadenceChart({ samples }) {
         plotOptions: {
           column: {
             borderWidth: 0,
+            // …and a transparent border colour as a belt to that braces.
+            // Highcharts' default column border is *white*, and it drops the
+            // `stroke-width="0"` attribute off existing point paths when a
+            // chart.update() changes the point count — which is exactly what
+            // the resize-observer re-bucketing pass does whenever the
+            // first-paint bar-count estimate disagrees with the real
+            // plotWidth (so: some viewport widths, not others). SVG's default
+            // stroke-width of 1 then applies and every bar picks up a 1px
+            // white outline. With the colour transparent there's nothing to
+            // paint even if the width attribute goes missing again.
+            borderColor: "transparent",
             // Rounded caps like Apple's own Health charts — top only, flat
             // where the bar meets the axis.
             borderRadiusTopLeft: 2,
@@ -1386,7 +1484,7 @@ function CadenceChart({ samples }) {
             // Bars sit muted by default; only the one under the cursor pops
             // to the full accent color, drawing the eye to exactly one bar
             // at a time instead of a wall of solid teal.
-            states: { hover: { color: "#2fe0c0", brightness: 0 } },
+            states: { hover: { color: cssVar("--accent"), brightness: 0 } },
           },
         },
         tooltip: {
@@ -1399,9 +1497,9 @@ function CadenceChart({ samples }) {
           {
             name: "Cadence (spm)",
             data: points.map((s) => Math.round(s.cadence_spm)),
-            // 33% more muted than the full accent (#2fe0c0) — see the
+            // 33% more muted than the full accent — see the
             // column.states.hover override above for the full-color pop.
-            color: "rgba(47, 224, 192, 0.67)",
+            color: fade(cssVar("--accent"), 0.67),
           },
         ],
       };
@@ -1443,8 +1541,9 @@ function RunningHrChart({ samples }) {
             name: "Heart rate (bpm)",
             data: samples.map((s) => [s.t - t0, s.hr]),
             // Muted like cadence's bars, for the same reason — see
-            // CadenceChart's color comment.
-            color: "rgba(255, 125, 104, 0.67)",
+            // CadenceChart's color comment. --hot is the heart-rate/effort
+            // hue, and every theme owns it.
+            color: fade(cssVar("--hot"), 0.67),
             fillOpacity: 0.12,
             marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
             states: { hover: { lineWidthPlus: 0 } },
@@ -1484,7 +1583,7 @@ function HrLineChart({ samples }) {
           {
             name: "Heart rate (bpm)",
             data: samples.map((s) => [s.t - t0, s.hr]),
-            color: "rgba(255, 125, 104, 0.67)",
+            color: fade(cssVar("--hot"), 0.67),
             fillOpacity: 0.12,
             marker: { enabled: false, states: { hover: { enabled: true, radius: 4 } } },
             states: { hover: { lineWidthPlus: 0 } },
@@ -1762,6 +1861,7 @@ function Notes({ note }) {
       <div class="editor" ref=${elRef}></div>
       <div class="saverow">
         <button class="btn btn--accent" onClick=${save}>
+          <${HdrGlow} className="btn-hdr" />
           <${I} name="FloppyDisk" size=${16} weight="bold" />Save notes
         </button>
         <span

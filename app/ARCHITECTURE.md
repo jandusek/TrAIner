@@ -209,6 +209,8 @@ Design notes:
 - `parser_version` is critical for the "reprocess everything" workflow. Bump it when the parser changes; you can then `SELECT * FROM workouts WHERE parser_version != 'current'` to find stale rows.
 - `reconstructed` flag on laps distinguishes inferred boundaries from native ones (cycling FIT files give native laps; HAE swim JSON does not).
 - `route_points` is derived data like `laps` — deleted and rewritten on every ingest, so a parser bump + replay from R2 backfills tracks. Points are extracted from two sources into one WGS84 shape (`src/route.ts`): Wahoo FIT `recordMesgs` (semicircles → degrees, the canonical cycling track) and the Apple Watch's HAE `route[]` (runs; also cycling watch-echoes, which supersession hides in favor of the Wahoo copy). Swims/tennis and indoor sessions produce zero rows. Stored thinned to a generous cap (`STORE_MAX_ROUTE_POINTS`); the `/api/route` endpoint thins again for display and precomputes bounds. The detail page renders it as a Leaflet + OSM map (dark-filtered tiles, accent polyline, start/finish markers) — gated to cycling/running, so swims never load Leaflet. **Note:** the HAE `route[]` shape is parsed defensively but unverified — no outdoor Apple Watch workout has landed yet; confirm against the first real run.
+- `cycling_samples` carries power/cadence/**speed** per second from the Wahoo FIT, plus HR from the Watch echo, each source in its own row (see `migrations/0012`, `0026`). Speed's source depends on what was paired for that ride, which the FIT's own `deviceInfoMesgs` inventory records: with no `bikeSpeed`/`bikeSpeedCadence` sensor in the list, speed comes from GPS and goes null wherever the fix drops, while power and cadence keep recording. On the reference fixture there is no speed sensor and the 122 speed-less seconds are exactly the 122 without a position fix. Either way a null speed second is not a stopped second. The detail page charts it as "Speed & cadence" beneath the power/HR chart, hover-synced to it.
+- **A new derived column does not backfill itself.** A parser bump only changes what new ingests extract; existing rows keep whatever they were written with (`speed_ms` landed NULL on every ride ingested before `migrations/0026`, and the charts read empty until those rows were rewritten). R2 holds the original bytes, so the fix is always a replay through the current parser, never a re-download from the device vendor — `storeFitWorkout` is idempotent precisely so that replay is safe.
 - HR samples will hit ~1800 rows per swim workout at per-second granularity. 200 workouts/year ≈ 360K rows. D1 is fine with this. If it ever balloons, downsample to per-5s after 1 year.
 
 ### MCP server
@@ -239,6 +241,15 @@ hr_distribution(workout_id_or_range)
 
 session_summary(workout_id)
   → human-readable summary, combining workout + notes.yaml if present
+
+get_workout_samples(source_id, buckets=40)
+  → within-session time series, bucketed into equal windows: avg/max power,
+    avg cadence, avg speed, avg HR per window, plus the windows that hold no
+    samples at all (`gap_sec` — a ride's auto-paused stops). Cycling reads
+    `cycling_samples`; running reads `running_cadence_samples` +
+    `running_hr_samples`; other sports have no per-time stream. The one tool
+    that answers "what was the shape of this session", as opposed to the
+    session averages every other tool returns.
 
 -- Athlete-authored, Claude-read (see "Write surfaces" below)
 get_athlete_profile()
@@ -439,7 +450,7 @@ Designed-around:
 4. **HR sample ingestion** into `hr_samples` table.
 5. **MCP server skeleton** with `get_recent_workouts` and `get_workout_detail`. Wire to Claude Desktop. Validate from chat.
 6. **Add analysis MCP tools** as needed: `stroke_count_drift`, `compare_metric`, `hr_distribution`. Drive these by real questions you want to ask, not speculation.
-7. **`/backfill` and reprocess endpoints.** You'll want these the first time the parser changes.
+7. **`/backfill` and reprocess endpoints.** You'll want these the first time the parser changes. Confirmed the hard way by `speed_ms` (see the D1 note above): a one-off replay was written, run against the archive, then removed — a standing endpoint is still the thing to build.
 9. **Browser viz** if and when the MCP-only workflow proves limiting.
 
 ## Open questions / TODOs

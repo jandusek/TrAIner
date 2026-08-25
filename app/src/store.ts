@@ -20,7 +20,7 @@ import {
 } from "./parse";
 import { reconstructLaps, type Lap } from "./laps";
 import { downsampleRoute, extractHaeRoute, type RoutePoint } from "./route";
-import type { PowerCadenceSample } from "./fit";
+import type { RideSample } from "./fit";
 import type { User } from "./users";
 
 export interface IngestResult {
@@ -482,11 +482,12 @@ async function dropWahooAppEcho(
 async function migrateCyclingSamples(db: D1Database, fromWorkoutId: string, toWorkoutId: string): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO cycling_samples (workout_id, t, source, power_w, cadence_rpm, hr)
-       SELECT ?, t, source, power_w, cadence_rpm, hr FROM cycling_samples WHERE workout_id = ?
+      `INSERT INTO cycling_samples (workout_id, t, source, power_w, cadence_rpm, speed_ms, hr)
+       SELECT ?, t, source, power_w, cadence_rpm, speed_ms, hr FROM cycling_samples WHERE workout_id = ?
        ON CONFLICT(workout_id, t, source) DO UPDATE SET
          power_w     = excluded.power_w,
          cadence_rpm = excluded.cadence_rpm,
+         speed_ms    = excluded.speed_ms,
          hr          = excluded.hr`,
     )
     .bind(toWorkoutId, fromWorkoutId)
@@ -589,7 +590,7 @@ async function writeHaeHrSamples(
   for (const { summary, raw } of rides) {
     const workoutId = idBySource.get(summary.source_id);
     if (!workoutId) continue;
-    const samples = extractHaeHrSamples(raw).map((s) => ({ t: s.t, power_w: null, cadence_rpm: null, hr: s.hr }));
+    const samples = extractHaeHrSamples(raw).map((s) => ({ t: s.t, power_w: null, cadence_rpm: null, speed_ms: null, hr: s.hr }));
     await writeCyclingSamples(db, workoutId, "watch", samples);
   }
 }
@@ -824,10 +825,10 @@ function swimHrSampleInsert(db: D1Database, workoutId: string, chunk: { t: numbe
     .bind(...binds);
 }
 
-// SQLite's 100-variable limit / 6 cols per row caps a multi-row insert at 16
+// SQLite's 100-variable limit / 7 cols per row caps a multi-row insert at 14
 // rows; batched further to keep each D1 transaction modest.
-const SAMPLE_COLS = 6; // workout_id, t, source, power_w, cadence_rpm, hr
-const SAMPLE_ROWS_PER_INSERT = Math.floor(100 / SAMPLE_COLS); // 16
+const SAMPLE_COLS = 7; // workout_id, t, source, power_w, cadence_rpm, speed_ms, hr
+const SAMPLE_ROWS_PER_INSERT = Math.floor(100 / SAMPLE_COLS); // 14
 const SAMPLE_INSERTS_PER_BATCH = 20; // ≤ 320 rows per D1 transaction
 
 /**
@@ -846,7 +847,7 @@ async function writeCyclingSamples(
   db: D1Database,
   workoutId: string,
   source: "wahoo" | "watch",
-  samples: { t: number; power_w: number | null; cadence_rpm: number | null; hr: number | null }[],
+  samples: { t: number; power_w: number | null; cadence_rpm: number | null; speed_ms: number | null; hr: number | null }[],
 ): Promise<number> {
   if (samples.length === 0) return 0;
   const inserts: D1PreparedStatement[] = [];
@@ -863,17 +864,18 @@ function cyclingSampleInsert(
   db: D1Database,
   workoutId: string,
   source: "wahoo" | "watch",
-  chunk: { t: number; power_w: number | null; cadence_rpm: number | null; hr: number | null }[],
+  chunk: { t: number; power_w: number | null; cadence_rpm: number | null; speed_ms: number | null; hr: number | null }[],
 ): D1PreparedStatement {
-  const values = chunk.map(() => "(?,?,?,?,?,?)").join(",");
+  const values = chunk.map(() => "(?,?,?,?,?,?,?)").join(",");
   const binds: (string | number | null)[] = [];
-  for (const s of chunk) binds.push(workoutId, s.t, source, s.power_w, s.cadence_rpm, s.hr);
+  for (const s of chunk) binds.push(workoutId, s.t, source, s.power_w, s.cadence_rpm, s.speed_ms, s.hr);
   return db
     .prepare(
-      `INSERT INTO cycling_samples (workout_id, t, source, power_w, cadence_rpm, hr) VALUES ${values}
+      `INSERT INTO cycling_samples (workout_id, t, source, power_w, cadence_rpm, speed_ms, hr) VALUES ${values}
        ON CONFLICT(workout_id, t, source) DO UPDATE SET
          power_w     = excluded.power_w,
          cadence_rpm = excluded.cadence_rpm,
+         speed_ms    = excluded.speed_ms,
          hr          = excluded.hr`,
     )
     .bind(...binds);
@@ -1154,7 +1156,7 @@ export async function storeFitWorkout(
   summary: WorkoutSummary,
   laps: Lap[],
   route: RoutePoint[],
-  samples: PowerCadenceSample[],
+  samples: RideSample[],
   rawR2Key: string,
   parserVersion: string,
 ): Promise<{
@@ -1191,7 +1193,7 @@ export async function storeFitWorkout(
     env.DB,
     workoutId,
     "wahoo",
-    samples.map((s) => ({ t: s.t, power_w: s.power_w, cadence_rpm: s.cadence_rpm, hr: null })),
+    samples.map((s) => ({ t: s.t, power_w: s.power_w, cadence_rpm: s.cadence_rpm, speed_ms: s.speed_ms, hr: null })),
   );
 
   const supersededHaeWorkoutIds = await supersedeOverlappingHaeRows(

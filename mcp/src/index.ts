@@ -25,6 +25,7 @@ import {
   getSessionEval,
   getUserByEmail,
   getWorkoutDetail,
+  getWorkoutSamples,
   listPersonalBests,
   resolveWorkoutId,
   setNextFocus,
@@ -337,6 +338,19 @@ export class TrainingMCP extends McpAgent<Env, Record<string, never>, Props> {
         const evaluation = await getSessionEval(this.env.DB, w.id);
         if (evaluation) lines.push(`\nEvaluation:\n${evaluation.content_md}`);
         return text(lines.join("\n"));
+      },
+    );
+
+    this.server.tool(
+      "get_workout_samples",
+      "Within-session time series for one workout, bucketed into time windows — how power, cadence, speed and HR moved across the session, rather than the single averages every other tool reports. Cycling and running only. Reach for this whenever the question is about shape rather than totals: did they fade in the back half, were the intervals even, did cadence drop on the climbs, was a slow average caused by stops or by riding slowly. Raise `buckets` to zoom in on a session worth reading closely. Read the returned `notes` and `gap_sec` before drawing conclusions — an empty window is a stop, not a slow patch.",
+      { source_id: z.string(), buckets: z.number().int().min(1).max(200).optional() },
+      async ({ source_id, buckets }) => {
+        const u = await this.user();
+        if (!u) return text({ message: "No data for " + this.props!.email });
+        const out = await getWorkoutSamples(this.env.DB, u.id, source_id, buckets);
+        if (!out) return text({ message: "Workout not found", source_id });
+        return text(out);
       },
     );
 

@@ -65,23 +65,57 @@ Highcharts.setOptions({
  * Cross-chart hover sync — charts registered under the same key highlight
  * the same instant together, the way Apple's Health app lines up a single
  * hovered moment across its stacked Cadence / Vertical Oscillation / Ground
- * Contact Time charts. Only the running section's cadence chart joins a
- * group today; adding the next running chart is just passing the same
- * `sync: "running"` key to its own useChart call — no other wiring needed.
+ * Contact Time charts. Two groups exist today: "running" (cadence + heart
+ * rate) and "cycling" (power/HR + speed/cadence). Adding another chart to
+ * either is just passing the same key to its own useChart call — no other
+ * wiring needed. Charts in a group must share an x scale; both groups use
+ * elapsed seconds from the session's first sample.
  */
 const syncGroups = new Map(); // key -> Set<Highcharts.Chart>
+
+/** Drop the hover state we applied on a previous sync, so highlighted markers
+ * don't accumulate as the pointer moves. */
+function clearSynced(chart) {
+  for (const p of chart.__syncPoints ?? []) p.setState("");
+  chart.__syncPoints = null;
+}
 
 function broadcastHover(sourceChart, groupKey, nativeEvent) {
   const group = syncGroups.get(groupKey);
   if (!group) return;
+  // Sync on the hovered TIME, not on the screen pixel. Stacked charts don't
+  // share a plot origin — a wider y-axis label gutter on one (power's "450"
+  // against speed's "45") shifts its plot area by a few pixels, which at these
+  // durations is most of a minute of drift between what the two charts claim
+  // to be showing. Reading the source's data-x once and looking every other
+  // chart up by that value keeps them on the same instant by construction.
+  const srcEvent = sourceChart.pointer.normalize(nativeEvent);
+  const dataX = sourceChart.xAxis[0].toValue(srcEvent.chartX);
+
   for (const other of group) {
     if (other === sourceChart || !other.series.length) continue;
-    const event = other.pointer.normalize(nativeEvent);
-    const point = other.series[0].searchPoint(event, true);
-    if (!point) continue;
-    point.onMouseOver();
-    other.tooltip.refresh(point);
-    other.xAxis[0].drawCrosshair(event, point);
+    clearSynced(other);
+    // EVERY series, not just series[0] — the receiving chart has two of them,
+    // and searching only the first is why a synced hover used to surface a
+    // single value. pointAtX also enforces a proximity window, so a chart
+    // with nothing recorded at this instant (speed and cadence during an
+    // auto-paused stop) goes quiet rather than snapping its crosshair to the
+    // nearest point minutes away and implying the two charts are aligned.
+    const points = other.series.map((s) => pointAtX(s, dataX)).filter(Boolean);
+    if (!points.length) {
+      // hide(0) rather than the default delay: this is "nothing was recorded
+      // here", so the previous instant's numbers must not sit on screen while
+      // the pointer is already somewhere else.
+      other.tooltip.hide(0);
+      other.xAxis[0].hideCrosshair();
+      continue;
+    }
+    for (const p of points) p.setState("hover");
+    other.__syncPoints = points;
+    // An ARRAY, not a single point: `tooltip.shared` only produces a
+    // multi-row tooltip when refresh is handed one point per series.
+    other.tooltip.refresh(points);
+    other.xAxis[0].drawCrosshair(srcEvent, points[0]);
   }
 }
 
@@ -90,6 +124,7 @@ function broadcastLeave(sourceChart, groupKey) {
   if (!group) return;
   for (const other of group) {
     if (other === sourceChart) continue;
+    clearSynced(other);
     other.tooltip.hide();
     other.xAxis[0].hideCrosshair();
   }
@@ -878,73 +913,284 @@ function StrokeDriftBadge({ drift }) {
   `;
 }
 
+// How close an HR reading must sit to a recorded power second to count as
+// "taken while riding". The Watch samples HR at ~5s and never pauses, so a
+// plain nearest-neighbour test needs a tolerance wider than that spacing but
+// far narrower than any real stop.
+const RIDING_HR_TOLERANCE_SEC = 30;
+
+// A pause longer than this makes "first half vs second half" a comparison
+// between two separate efforts rather than the drift within one, so the
+// figure gets an explicit caveat instead of being read at face value.
+const DECOUPLING_SPLIT_GAP_SEC = 600;
+
+/**
+ * Aerobic decoupling — how much the power:HR ratio degraded from the first
+ * half of the ride to the second. Rising HR for the same watts is the classic
+ * aerobic-fade signature.
+ *
+ * Two things make this harder than averaging two halves, both consequences of
+ * the ride's two clocks (see migrations/0023_moving_time.sql):
+ *
+ *  1. **The head unit auto-pauses; the Watch does not.** A ride with a long
+ *     stop has power recorded only while moving but HR recorded continuously,
+ *     including a stretch of resting HR. Averaging that resting HR into a
+ *     half deflates its denominator and inflates its ratio — which is what
+ *     produced a -98.7% reading (and a cheerful "held steady") on a commute
+ *     with a 70-minute break in the middle. HR is therefore restricted to
+ *     readings that sit near an actually-recorded power second.
+ *  2. **The elapsed midpoint is not the halfway point of the riding.** On the
+ *     same ride the elapsed midpoint lands inside the break. Split at the
+ *     median recorded power sample instead, so each half holds an equal
+ *     amount of real riding.
+ */
 function Decoupling({ samples }) {
   const withPower = samples.filter((s) => s.power_w != null);
-  const withHr = samples.filter((s) => s.hr != null);
-  if (withPower.length < 20 || withHr.length < 6) return null;
-  const midT = (samples[0].t + samples[samples.length - 1].t) / 2;
+  if (withPower.length < 20) return null;
+
+  // Two sorted sequences walked once: keep an HR reading only if some power
+  // second sits within the tolerance of it.
+  const powerTimes = withPower.map((s) => s.t);
+  const ridingHr = [];
+  let pi = 0;
+  for (const s of samples) {
+    if (s.hr == null) continue;
+    while (pi < powerTimes.length - 1 && Math.abs(powerTimes[pi + 1] - s.t) <= Math.abs(powerTimes[pi] - s.t)) pi++;
+    if (Math.abs(powerTimes[pi] - s.t) <= RIDING_HR_TOLERANCE_SEC) ridingHr.push(s);
+  }
+  if (ridingHr.length < 6) return null;
+
+  const midT = powerTimes[Math.floor(powerTimes.length / 2)];
   const avg = (arr, key) => arr.reduce((a, s) => a + s[key], 0) / arr.length;
   const p1 = withPower.filter((s) => s.t < midT),
     p2 = withPower.filter((s) => s.t >= midT);
-  const h1 = withHr.filter((s) => s.t < midT),
-    h2 = withHr.filter((s) => s.t >= midT);
+  const h1 = ridingHr.filter((s) => s.t < midT),
+    h2 = ridingHr.filter((s) => s.t >= midT);
   if (!p1.length || !p2.length || !h1.length || !h2.length) return null;
+
   const r1 = avg(p1, "power_w") / avg(h1, "hr");
   const r2 = avg(p2, "power_w") / avg(h2, "hr");
+  if (!(r1 > 0)) return null;
   const pct = ((r1 - r2) / r1) * 100;
-  const kind = pct < 5 ? "good" : pct < 8 ? "warn" : "bad";
+
+  // Classify on MAGNITUDE. The old `pct < 5` test had no lower bound, so an
+  // extreme negative — the second half producing far more power per heartbeat
+  // than the first — passed as the healthiest possible result.
+  const mag = Math.abs(pct);
+  const kind = mag < 5 ? "good" : mag < 8 ? "warn" : "bad";
+  const verdict =
+    mag < 5
+      ? "held steady, aerobically sound."
+      : pct > 0
+        ? mag < 8
+          ? "some fade in the back half."
+          : "notable fade — likely working above aerobic base."
+        : "the back half produced more power per heartbeat than the first — a hard finish, or two efforts too different to compare.";
+
+  // Longest hole in the recording. Its presence changes what the number means,
+  // so say so rather than letting a split ride read as one continuous effort.
+  let longestGap = 0;
+  for (let i = 1; i < powerTimes.length; i++) longestGap = Math.max(longestGap, powerTimes[i] - powerTimes[i - 1]);
+  const split = longestGap >= DECOUPLING_SPLIT_GAP_SEC;
+
   return html`
     <div class=${`decoupling decoupling--${kind} rise`}>
       <span class="decoupling__v"
         >${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%</span
       >
       <span class="decoupling__label">
-        Aerobic decoupling (Power:HR, 1st half vs 2nd half) —
-        ${kind === "good"
-          ? "held steady, aerobically sound."
-          : kind === "warn"
-            ? "some fade in the back half."
-            : "notable fade — likely working above aerobic base."}
+        Aerobic decoupling (Power:HR, 1st half vs 2nd half) — ${verdict}
+        ${split
+          ? html`<br /><span style=${{ opacity: 0.7 }}
+              >Split by a ${fmtDur(longestGap)} stop, so the halves are really two separate
+              efforts — read this as a comparison between them, not drift within one ride.</span
+            >`
+          : null}
       </span>
     </div>
   `;
 }
 
+// How far from the hovered instant a series' point may sit and still be shown
+// as that instant's value. Wide enough for HR's ~5s Watch cadence, narrow
+// enough that a series with nothing there (power during an auto-paused stop,
+// speed through a GPS dropout) drops out of the tooltip instead of reporting a
+// stale reading from minutes away.
+const TOOLTIP_SNAP_SEC = 15;
+
+/** Nearest point of `series` to data-x with a real value, or null if the
+ * closest one is further away than TOOLTIP_SNAP_SEC. Binary search — `points`
+ * is x-sorted, and these series run to thousands of samples. */
+function pointAtX(series, x) {
+  const pts = series.points;
+  if (!pts || !pts.length) return null;
+  let lo = 0,
+    hi = pts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (pts[mid].x < x) lo = mid + 1;
+    else hi = mid;
+  }
+  let best = null;
+  for (const p of [pts[lo - 1], pts[lo], pts[lo + 1]]) {
+    if (!p || p.y == null) continue;
+    if (!best || Math.abs(p.x - x) < Math.abs(best.x - x)) best = p;
+  }
+  return best && Math.abs(best.x - x) <= TOOLTIP_SNAP_SEC ? best : null;
+}
+
+/**
+ * Tooltip contents for the ride charts, derived by looking every series up at
+ * the hovered x rather than rendering whatever point set the tooltip was
+ * refreshed with.
+ *
+ * Both charts declare `shared: true`, but that alone does not get every series
+ * into the tooltip. Two separate paths were each dropping rows:
+ *   * Highcharts' own pointer gathering hands the tooltip a single series here
+ *     even when both have a point at that x (verified in the browser: each
+ *     series' own `searchPoint` finds one, yet `chart.hoverPoints` holds just
+ *     the one) — so the chart under the cursor showed one value.
+ *   * `broadcastHover` refreshes a synced sibling explicitly, and can only
+ *     pass what it gathered.
+ * Deriving the rows here makes both paths render the same complete set.
+ *
+ * Per-series decimals ride along in `series.custom.dp`.
+ */
+function rideTooltipFormatter() {
+  const chart = this.points?.[0]?.series?.chart ?? this.point?.series?.chart;
+  if (!chart) return false;
+  const rows = chart.series
+    .map((s) => {
+      const p = pointAtX(s, this.x);
+      if (!p) return null;
+      return `<span style="color:${s.color}">\u25cf</span> ${s.name}: <b>${p.y.toFixed(s.options.custom?.dp ?? 0)}</b>`;
+    })
+    .filter(Boolean);
+  return rows.length ? `<b>${fmtDur(this.x)}</b><br/>${rows.join("<br/>")}` : false;
+}
+
 function PowerHrChart({ samples }) {
   const t0 = samples[0].t;
-  const ref = useChart(() => {
-    const powers = samples.filter((s) => s.power_w != null).map((s) => [s.t - t0, s.power_w]);
-    const hrs = samples.filter((s) => s.hr != null).map((s) => [s.t - t0, s.hr]);
-    return {
-      chart: { type: "line", height: 220, zooming: { type: "x" } },
-      xAxis: {
-        title: { text: undefined },
-        labels: { formatter() { return fmtDur(this.value); } },
-      },
-      yAxis: [
-        { title: { text: undefined } },
-        {
+  const ref = useChart(
+    () => {
+      const powers = samples.filter((s) => s.power_w != null).map((s) => [s.t - t0, s.power_w]);
+      const hrs = samples.filter((s) => s.hr != null).map((s) => [s.t - t0, s.hr]);
+      return {
+        chart: { type: "line", height: 220, zooming: { type: "x" } },
+        xAxis: {
           title: { text: undefined },
-          opposite: true,
-          plotBands: HR_ZONES.map((z) => ({ from: z.low, to: z.high, color: `${z.color}0f` })),
+          labels: { formatter() { return fmtDur(this.value); } },
         },
-      ],
-      tooltip: {
-        shared: true,
-        headerFormat: '<b>{point.key}</b><br/>',
-        formatter() {
-          const rows = this.points
-            .map((p) => `<span style="color:${p.color}">●</span> ${p.series.name}: <b>${Math.round(p.y)}</b>`)
-            .join("<br/>");
-          return `<b>${fmtDur(this.x)}</b><br/>${rows}`;
+        yAxis: [
+          { title: { text: undefined } },
+          {
+            title: { text: undefined },
+            opposite: true,
+            plotBands: HR_ZONES.map((z) => ({ from: z.low, to: z.high, color: `${z.color}0f` })),
+          },
+        ],
+        tooltip: { shared: true, formatter: rideTooltipFormatter },
+        series: [
+          { name: "Power (W)", data: powers, yAxis: 0, color: "#2fe0c0", fillOpacity: 0.12, type: "area" },
+          { name: "Heart rate (bpm)", data: hrs, yAxis: 1, color: "#ff7d68" },
+        ],
+      };
+    },
+    [samples],
+    { sync: "cycling" },
+  );
+
+  return html`<div class="pwchart-wrap rise"><div ref=${ref}></div></div>`;
+}
+
+/* ── cycling: speed + cadence over time ───────────────────────────────────
+ * Both come straight off the Wahoo at 1 Hz (see fit.ts's extractFitSamples);
+ * neither is derived the way running's cadence is. Split out from the
+ * power/HR chart rather than added to it — four series over two axes was
+ * already the readable limit there — and joined to it by hover sync so the
+ * pair reads as one stacked view of the same ride.
+ */
+
+// Centered rolling-mean window. Raw 1 Hz cadence swings ~15 rpm between
+// adjacent seconds on a normal pedal stroke, and raw speed jitters with every
+// GPS/wheel-sensor tick; at a chart's pixel density that renders as a solid
+// band whose shape is unreadable. 15s is long enough to settle both and short
+// enough to keep a real surge or a traffic-light slowdown intact.
+const RIDE_SMOOTH_SEC = 15;
+
+// A pause in the recording longer than this breaks the line rather than
+// drawing across it. The Wahoo records nothing while auto-paused, so a stop
+// is a gap in `t`, not a run of zeros — and a line drawn straight across it
+// would read as "still riding, just slower", which is exactly the confusion
+// migrations/0023_moving_time.sql documents at the averages level. 10s is
+// comfortably above the ~1s sample spacing and below a real traffic stop.
+const RIDE_GAP_SEC = 10;
+
+/**
+ * Smooth one `{ t, [key] }` series with a centered time-window mean and
+ * return `[elapsedSec, value]` pairs, with a null point inserted across any
+ * gap longer than RIDE_GAP_SEC so the line breaks there.
+ *
+ * Time-windowed rather than a fixed sample count: the stream is only
+ * nominally 1 Hz, and averaging "the previous N samples" across a stop would
+ * silently blend the two sides of it together.
+ */
+function smoothedSeries(samples, key, t0) {
+  const pts = [];
+  for (const s of samples) {
+    if (s[key] != null) pts.push([s.t, s[key]]);
+  }
+  if (!pts.length) return [];
+
+  const half = RIDE_SMOOTH_SEC / 2;
+  const out = [];
+  let lo = 0;
+  let hi = 0;
+  let sum = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const t = pts[i][0];
+    // Both pointers only ever advance, so this stays O(n) overall despite
+    // the inner loops — each sample enters and leaves the window once.
+    while (hi < pts.length && pts[hi][0] <= t + half) sum += pts[hi++][1];
+    while (pts[lo][0] < t - half) sum -= pts[lo++][1];
+    if (i > 0 && t - pts[i - 1][0] > RIDE_GAP_SEC) out.push([pts[i - 1][0] - t0 + 1, null]);
+    out.push([t - t0, sum / (hi - lo)]);
+  }
+  return out;
+}
+
+function SpeedCadenceChart({ samples }) {
+  const t0 = samples[0].t;
+  const ref = useChart(
+    () => {
+      const speeds = smoothedSeries(samples, "speed_ms", t0).map(([t, v]) => [t, v == null ? null : v * 3.6]);
+      const cadences = smoothedSeries(samples, "cadence_rpm", t0);
+      if (!speeds.length && !cadences.length) return null;
+      return {
+        chart: { type: "line", height: 220, zooming: { type: "x" } },
+        xAxis: {
+          title: { text: undefined },
+          labels: { formatter() { return fmtDur(this.value); } },
         },
-      },
-      series: [
-        { name: "Power (W)", data: powers, yAxis: 0, color: "#2fe0c0", fillOpacity: 0.12, type: "area" },
-        { name: "Heart rate (bpm)", data: hrs, yAxis: 1, color: "#ff7d68" },
-      ],
-    };
-  }, [samples]);
+        yAxis: [
+          { title: { text: undefined } },
+          // Cadence pinned to start at 0 rather than auto-scaling: a rider
+          // holding 85-90 rpm the whole way would otherwise get an axis
+          // spanning 5 rpm, magnifying noise into what looks like structure.
+          { title: { text: undefined }, opposite: true, min: 0, softMax: 120 },
+        ],
+        tooltip: { shared: true, formatter: rideTooltipFormatter },
+        series: [
+          { name: "Speed (km/h)", data: speeds, yAxis: 0, color: "#ffce73", fillOpacity: 0.14, type: "area", custom: { dp: 1 } },
+          // Muted blue against the gold — the same Z1 blue the HR-zone
+          // palette uses, so the page keeps one set of hues.
+          { name: "Cadence (rpm)", data: cadences, yAxis: 1, color: "#4a90a4" },
+        ],
+      };
+    },
+    [samples],
+    { sync: "cycling" },
+  );
 
   return html`<div class="pwchart-wrap rise"><div ref=${ref}></div></div>`;
 }
@@ -993,12 +1239,20 @@ function CyclingSamplesSection({ state }) {
       style=${{ height: "13rem", marginTop: "1rem" }}
     ></div>`;
   if (state.status !== "ok") return null;
+  // A ride that only ever had the Watch echo carries HR and nothing else
+  // (see migrations/0012_cycling_samples_by_source.sql) — no Wahoo row means
+  // no speed or cadence, so that chart is skipped rather than rendered empty.
+  const hasSpeedCadence = state.samples.some((s) => s.speed_ms != null || s.cadence_rpm != null);
   return html`
     <div class="section-label" style=${{ marginTop: "2.4rem" }}>
       Power & heart rate
     </div>
     <${PowerHrChart} samples=${state.samples} />
     <${Decoupling} samples=${state.samples} />
+    ${hasSpeedCadence
+      ? html`<div class="section-label" style=${{ marginTop: "2.4rem" }}>Speed & cadence</div>
+          <${SpeedCadenceChart} samples=${state.samples} />`
+      : null}
   `;
 }
 

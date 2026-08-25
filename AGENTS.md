@@ -4,6 +4,10 @@ This repo is a personal training data pipeline: workouts flow from fitness devic
 
 This file is the **agent-facing guide** — what this repo is, how to pull an athlete's own context before analyzing, and how to persist your output back through the app. It deliberately holds no athlete-specific data: the deployment is multi-user (see `app/ARCHITECTURE.md`'s multi-user model), so anything specific to one athlete — age, VO2max, HR zones, active sports, equipment, current training focus — lives in the app (Settings page / D1), fetched per-athlete via MCP, not hardcoded here. That keeps this file correct for whichever athlete is signed in, and keeps real personal data out of version control.
 
+## Before writing any code: sync with the remote
+
+`git fetch` and bring your branch up to date with `origin/main` before starting — a clean `git status` says nothing about whether the clone is current, and several sessions work this repo in parallel. Stale code merges *cleanly* at least as often as it conflicts, so conflicts aren't the risk to plan around. And `.github/workflows/deploy.yml` deploys both workers on every push to `main`, so a manual `npm run deploy` from a stale tree overwrites the live workers with old code — whatever your tree lacks, production loses. Prefer merging to `main` and letting CI deploy.
+
 ## Two ways a workout gets evaluated
 
 There are **two evaluators** writing to the same `session_evals` / `session_focus` tables, and they're meant for different jobs:
